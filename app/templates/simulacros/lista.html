@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Simulacros{% endblock %}
+{% block content %}
+<div class="sechead">
+  <div><h2 class="h2">Simulacros de evacuación</h2><p class="lead" style="margin-bottom:0">Programa, inicia y controla la llegada al punto de encuentro. {{ esperados }} personas del censo deben evacuar.</p></div>
+  <span class="tag t-nav">{{ ic('lock', 14) }} Solo Fundador y Coordinador</span>
+</div>
+
+{% if activo %}
+<div class="banner b-info" style="margin:18px 0">{{ ic('timer') }}<div style="flex:1"><b>Simulacro en curso · {{ activo.codigo }}</b>{{ activo.presentes }} de {{ esperados }} personas registradas en el punto de encuentro.
+<div style="margin-top:10px"><a class="btn btn-p btn-sm" href="{{ url_for('simulacros.ver', sid=activo.id) }}">Ir al check-in →</a></div></div></div>
+{% endif %}
+
+<div class="cols" style="margin-top:18px">
+  <form class="card" method="post" action="{{ url_for('simulacros.nuevo') }}">
+    {% include "_csrf.html" %}
+    <h3>Programar simulacro</h3>
+    <p class="hint">Después de crearlo, pulsa «Iniciar» el día del ejercicio.</p>
+    <div class="stack">
+      <div class="f2">
+        <div><label class="lbl" for="st">Tipo</label><select id="st" name="tipo" class="field sm">{% for k, v in TIPOS.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+        <div><label class="lbl" for="sm">Meta de evacuación (%)</label><input id="sm" name="meta_pct" type="number" min="1" max="100" value="92" class="field sm num"></div>
+      </div>
+      <div><label class="lbl" for="sd">Descripción</label><input id="sd" name="descripcion" class="field sm" value="Simulacro de evacuación por sismo" required></div>
+      <div><label class="lbl" for="sp">Fecha y hora</label><input id="sp" name="programado_para" type="datetime-local" class="field sm num" value="{{ ahora.strftime('%Y-%m-%dT%H:%M') }}" required></div>
+      <button class="btn btn-p">Programar</button>
+    </div>
+  </form>
+  <div class="card">
+    <h3>Historial</h3>
+    <p class="hint">Todos los simulacros, del más reciente al más antiguo.</p>
+    <div class="list">
+    {% for s in sims %}{% set e = estado(s) %}
+      <a class="row" style="text-decoration:none;color:inherit" href="{{ url_for('simulacros.ver', sid=s.id) }}">
+        <div class="l"><b>{{ s.codigo }} · {{ s.descripcion }}</b><small class="num">{{ TIPOS[s.tipo] }} · {{ s.programado_para|fecha }} · {{ s.presentes }} de {{ esperados }} presentes</small></div>
+        <span class="tag {{ e[1] }}">{{ e[0] }}</span>
+      </a>
+    {% else %}<p class="empty">Aún no hay simulacros.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

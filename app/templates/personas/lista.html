@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Censo de personas{% endblock %}
+{% block content %}
+<div class="sechead">
+  <div><h2 class="h2">Censo de personas</h2><p class="lead" style="margin-bottom:0">Registros que llegan del formulario de Google y pasan por el ETL a la base de datos.</p></div>
+  <span class="tag t-nav">{{ ic('lock', 14) }} Solo Fundador y Coordinador</span>
+</div>
+{% if ultima %}<p class="note" style="margin-top:8px">Última carga del ETL: {{ ultima.inicio|fecha }} · {{ ultima.insertadas }} nuevas, {{ ultima.actualizadas }} actualizadas, {{ ultima.rechazadas }} rechazadas ({{ ultima.estado }}).</p>{% endif %}
+
+<div class="kpis">
+  <div class="kpi"><div class="k">Total de personas<span class="tag t-nav">Activas</span></div><div class="v num">{{ kpi.total }}</div><div class="sub">{{ kpi.inactivas }} inactivas</div><div class="f">Personas activas en el censo</div></div>
+  <div class="kpi"><div class="k">Atención prioritaria</div><div class="v num">{{ kpi.prioritarias }}</div><div class="sub">{{ ((kpi.prioritarias / kpi.total * 100) if kpi.total else 0)|round|int }} % del censo</div><div class="f">Movilidad reducida, adulto mayor, menor, gestante</div></div>
+  <div class="kpi"><div class="k">Sin contacto completo<span class="tag {{ 't-warn' if kpi.sin_contacto else 't-ok' }}">{{ 'Revisar' if kpi.sin_contacto else 'OK' }}</span></div><div class="v num">{{ kpi.sin_contacto }}</div><div class="sub">falta nombre o celular</div><div class="f">Contacto de emergencia</div></div>
+  <div class="kpi"><div class="k">Personas albergadas</div><div class="v num">{{ kpi.albergadas }}</div><div class="sub">registradas desde el formulario</div><div class="f">Tipo «Persona albergada»</div></div>
+</div>
+
+<form class="filters" method="get">
+  <div><label class="lbl" for="b">Buscar</label><input id="b" name="q" value="{{ buscar }}" class="field sm" placeholder="Nombre, código P-0001 o documento"></div>
+  <div><label class="lbl" for="t">Tipo</label><select id="t" name="tipo" class="field sm"><option value="">Todos</option>{% for k, v in TIPOS.items() %}<option value="{{ k }}" {{ 'selected' if tipo == k }}>{{ v }}</option>{% endfor %}</select></div>
+  <div><label class="lbl" for="g">Grupo</label><select id="g" name="grupo" class="field sm"><option value="">Todos</option><option value="prioritario" {{ 'selected' if grupo == 'prioritario' }}>Cualquier prioritario</option>{% for k, v in GRUPOS.items() %}<option value="{{ k }}" {{ 'selected' if grupo == k }}>{{ v }}</option>{% endfor %}</select></div>
+  <div><label class="lbl" for="e">Estado</label><select id="e" name="estado" class="field sm"><option value="activas">Activas</option><option value="inactivas" {{ 'selected' if estado == 'inactivas' }}>Inactivas</option><option value="todas" {{ 'selected' if estado == 'todas' }}>Todas</option></select></div>
+  <button class="btn btn-s btn-sm">Filtrar</button>
+</form>
+
+<div class="tblwrap">
+<table class="dtable">
+  <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Ubicación</th><th>Punto de encuentro</th><th>Prioridad</th></tr></thead>
+  <tbody>
+  {% for p in personas %}
+    <tr class="link" onclick="location.href='{{ url_for('personas.ficha', codigo=p.codigo) }}'">
+      <td class="num"><a href="{{ url_for('personas.ficha', codigo=p.codigo) }}"><b>{{ p.codigo }}</b></a></td>
+      <td><b>{{ p.nombre }}</b>{% if not p.activo %}<small>Inactiva desde {{ p.fecha_baja|fecha('%d/%m/%Y') }}</small>{% endif %}</td>
+      <td>{{ TIPOS[p.tipo] }}</td>
+      <td>{% if p.tipo == 'albergado' %}{{ p.albergue }}{% else %}{{ p.torre_area or '—' }} {{ p.apto_cargo or '' }}{% endif %}</td>
+      <td>{{ p.punto_encuentro or '—' }}</td>
+      <td>{% if p.grupo_prioritario != 'ninguno' %}<span class="tag t-warn">{{ GRUPOS[p.grupo_prioritario] }}</span>{% else %}<span class="count">—</span>{% endif %}</td>
+    </tr>
+  {% else %}<tr><td colspan="6"><p class="empty">No hay personas con esos filtros. Carga respuestas del formulario desde «Datos y usuarios».</p></td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="count" style="margin-top:8px">{{ personas|length }} personas{{ ' (máximo 500 por página)' if personas|length == 500 }}</p>
+{% endblock %}

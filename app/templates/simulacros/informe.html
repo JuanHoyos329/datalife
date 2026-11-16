@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Informe {{ s.codigo }}{% endblock %}
+{% block content %}
+{% set seg = dur.total_seconds()|int %}
+<div class="btns noprint" style="margin-bottom:14px"><a class="btn btn-s btn-sm" href="{{ url_for('simulacros.lista') }}">← Simulacros</a><button class="btn btn-p btn-sm" onclick="window.print()">Imprimir / Guardar PDF</button></div>
+<div class="card report">
+  <div class="rhead">
+    <div><span class="lbl">Informe del simulacro</span><h3 style="font-size:24px">{{ s.codigo }} · {{ s.descripcion }}</h3><p class="hint" style="margin:0">{{ TIPOS[s.tipo] }}</p></div>
+    <div class="rmeta"><b>{{ s.iniciado_en|fecha('%d/%m/%Y') }}</b>Inicio {{ s.iniciado_en|fecha('%H:%M:%S') }} · Fin {{ s.finalizado_en|fecha('%H:%M:%S') }}</div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="k">Tiempo total</div><div class="v num">{{ seg // 60 }}:{{ '%02d' % (seg % 60) }}<small>min</small></div></div>
+    <div class="kpi"><div class="k">% evacuado<span class="tag {{ 't-ok' if d.pct*100 >= s.meta_pct else 't-warn' }}">Meta {{ s.meta_pct }} %</span></div><div class="v num">{{ (d.pct*100)|round(1)|n(1) }}<small>%</small></div><div class="sub num">{{ d.presentes }} de {{ d.esperados }}</div></div>
+    <div class="kpi"><div class="k">Prioritarios evacuados</div><div class="v num">{{ d.prio_pres }}<small>/ {{ d.prio_tot }}</small></div><div class="f">Atención prioritaria</div></div>
+    <div class="kpi"><div class="k">Frente al anterior</div>
+      {% if previo %}{% set pseg = (previo.finalizado_en - previo.iniciado_en).total_seconds()|int %}
+      <div class="v sm num">{{ '−' if seg < pseg else '+' }}{{ ((seg - pseg)|abs) // 60 }}:{{ '%02d' % (((seg - pseg)|abs) % 60) }}</div>
+      <div class="sub">{{ previo.codigo }} del {{ previo.iniciado_en|fecha('%d/%m/%Y') }}: {{ pseg // 60 }}:{{ '%02d' % (pseg % 60) }} min, {{ previo.presentes }} presentes</div>
+      {% else %}<div class="sub">Es el primer simulacro registrado.</div>{% endif %}</div>
+  </div>
+  <div class="sec"><h3>Tiempo por punto de encuentro</h3></div>
+  <div class="list">{% for p in puntos %}{% set ps = p.tiempo.total_seconds()|int %}<div class="row"><div class="l"><b>{{ p.punto }}</b><small class="num">Última llegada a los {{ ps // 60 }}:{{ '%02d' % (ps % 60) }} min</small></div><span class="tag t-neu num">{{ p.n }} personas</span></div>{% endfor %}</div>
+  <div class="sec"><h3>Faltantes ({{ d.faltantes|length }})</h3></div>
+  <div class="list">{% for m in d.faltantes %}<div class="row"><div class="l"><b>{{ m.nombre }}</b><small class="num">{{ m.codigo }} · {{ m.torre_area or '' }} {{ m.apto_cargo or '' }}</small></div>{% if m.grupo_prioritario != 'ninguno' %}<span class="tag t-crit">{{ GRUPOS[m.grupo_prioritario] }}</span>{% endif %}</div>{% else %}<p class="empty">Todas las personas esperadas llegaron al punto de encuentro.</p>{% endfor %}</div>
+  <div class="sec"><h3>Observaciones</h3></div>
+  <p>{{ s.observaciones or 'Sin observaciones.' }}</p>
+  <div class="f2" style="margin-top:40px"><div class="sign">Firma del Coordinador</div><div class="sign">Firma del Fundador</div></div>
+</div>
+{% endblock %}

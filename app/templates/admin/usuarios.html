@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Usuarios{% endblock %}
+{% block content %}
+{% with sub='usuarios' %}{% include "admin/_sub.html" %}{% endwith %}
+<h2 class="h2">Usuarios y roles</h2>
+<p class="lead">Solo Fundador y Coordinador entran a Simulacros y al censo. Voluntario y Brigadista ven únicamente Albergues.</p>
+<div class="tblwrap" style="margin-bottom:22px"><table class="dtable">
+  <thead><tr><th>Rol</th><th>Albergues</th><th>Registrar en albergues</th><th>Censo y simulacros</th><th>Usuarios y ETL</th></tr></thead>
+  <tbody>{% for r in roles %}<tr><td><b>{{ r.nombre }}</b></td><td>✓</td><td>{{ '✓' if r.puede_operar else '—' }}</td><td>{{ '✓' if r.puede_simulacros else '—' }}</td><td>{{ '✓' if r.puede_admin else '—' }}</td></tr>{% endfor %}</tbody>
+</table></div>
+<div class="cols">
+  <div class="tblwrap"><table class="dtable">
+    <thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
+    <tbody>{% for u in filas %}<tr>
+      <td><b>{{ u.usuario }}</b><small>{{ u.nombre }}{% if u.albergue %} · {{ u.albergue }}{% endif %} · último ingreso {{ u.ultimo_ingreso|fecha }}</small></td>
+      <td>{% if u.id != user.id and (u.rol != 'fundador' or user.rol == 'fundador') %}
+        <form method="post" action="{{ url_for('admin.cambiar_rol', uid=u.id) }}" class="rowf">{% include "_csrf.html" %}
+          <select name="rol" class="field sm" style="min-height:38px" onchange="this.form.submit()">{% for r in asignables %}<option value="{{ r }}" {{ 'selected' if r == u.rol }}>{{ ROL_LABEL[r] }}</option>{% endfor %}</select></form>
+        {% else %}<span class="tag t-nav">{{ u.rol_nombre }}</span>{% endif %}</td>
+      <td><span class="tag {{ 't-ok' if u.activo else 't-neu' }}">{{ 'Activo' if u.activo else 'Inactivo' }}</span></td>
+      <td>{% if u.id != user.id and (u.rol != 'fundador' or user.rol == 'fundador') %}<form method="post" action="{{ url_for('admin.alternar_activo', uid=u.id) }}">{% include "_csrf.html" %}<button class="btn btn-s btn-xs">{{ 'Desactivar' if u.activo else 'Activar' }}</button></form>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  <form class="card" method="post" action="{{ url_for('admin.crear_usuario') }}">
+    {% include "_csrf.html" %}
+    <h3>Nuevo usuario</h3>
+    <p class="hint">La clave se guarda cifrada (hash). Compártela por un canal seguro.</p>
+    <div class="stack">
+      <div class="f2"><div><label class="lbl" for="nu">Usuario</label><input id="nu" name="usuario" class="field sm" required pattern="[A-Za-z_][A-Za-z0-9_]*"></div>
+        <div><label class="lbl" for="nr">Rol</label><select id="nr" name="rol" class="field sm">{% for r in asignables %}<option value="{{ r }}" {{ 'selected' if r == 'voluntario' }}>{{ ROL_LABEL[r] }}</option>{% endfor %}</select></div></div>
+      <div><label class="lbl" for="nn">Nombre completo</label><input id="nn" name="nombre" class="field sm" required></div>
+      <div class="f2"><div><label class="lbl" for="na">Albergue</label><select id="na" name="albergue" class="field sm"><option value="">—</option>{% for a in albergues %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}</select></div>
+        <div><label class="lbl" for="nc">Clave (mín. 8)</label><input id="nc" name="clave" type="password" minlength="8" class="field sm" required autocomplete="new-password"></div></div>
+      <button class="btn btn-p">Crear usuario</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

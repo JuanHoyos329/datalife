@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Cupos · {{ alb.nombre }}{% endblock %}
+{% block content %}
+{% with titulo="Disponibilidad de cupos", lead="Ocupación del albergue, familias en espera y salidas. Se actualiza con cada registro.", extra_ver=None %}{% include "_albsel.html" %}{% endwith %}
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="k">Cupos disponibles<span class="tag {{ 't-crit' if nivel=='crit' else 't-warn' if nivel=='warn' else 't-ok' }}">{{ 'Lleno' if nivel=='crit' else 'Alta' if nivel=='warn' else 'Normal' }}</span></div>
+    <div class="v num">{{ alb.disponibles }}<small>/ {{ alb.capacidad }}</small></div>
+    <div class="meter {{ nivel }}"><i style="width: {{ [3, (alb.ocupacion * 100)|round(1)]|max }}%"></i></div>
+    <div class="sub num">{{ alb.ocupados }} personas alojadas</div>
+    <div class="f">Capacidad − personas alojadas</div>
+  </div>
+  <div class="kpi">
+    <div class="k">Tasa de ocupación</div>
+    <div class="v num">{{ (alb.ocupacion * 100)|round|int }}<small>%</small></div>
+    <div class="sub">Alerta desde 90 %</div>
+    <div class="f">Cupos ocupados ÷ cupos totales</div>
+  </div>
+  <div class="kpi">
+    <div class="k">En espera de cupo{% if pendientes %}<span class="tag t-warn">{{ pendientes|length }}</span>{% endif %}</div>
+    <div class="v num">{{ alb.personas_en_espera }}<small>personas</small></div>
+    <div class="sub num">{{ alb.familias_en_espera }} familias registradas sin cupo</div>
+    <div class="f">Incluye registros del formulario</div>
+  </div>
+  <div class="kpi">
+    <div class="k">Flujo de hoy<span class="tag t-neu">Neto {{ flujo.entradas - flujo.salidas }}</span></div>
+    <div class="flow num"><div><b>{{ flujo.entradas }}</b><span>Ingresos</span></div><div style="color:#B7BCC2;font-size:24px">vs</div><div><b>{{ flujo.salidas }}</b><span>Salidas</span></div></div>
+    <div class="f">Se reinicia a medianoche (hora de Colombia)</div>
+  </div>
+</div>
+
+{% for r in remisiones %}
+<div class="alert a-warn" style="margin-bottom:10px">
+  <span class="ai">{{ ic('arrow', 22) }}</span>
+  <div style="flex:1"><div class="at"><span class="tag t-warn">Remisión sugerida</span>{{ r.familia.codigo }} ({{ r.familia.integrantes }} personas) → {{ r.destino.nombre }}</div>
+  <p>Aquí quedan {{ alb.disponibles }} cupos; {{ r.destino.nombre }} tiene {{ r.destino.disponibles }} libres.</p>
+  {% if user.puede_operar %}
+  <form method="post" action="{{ url_for('albergues.remitir', fid=r.familia.id) }}" style="margin-top:8px">{% include "_csrf.html" %}<input type="hidden" name="destino" value="{{ r.destino.albergue_id }}"><button class="btn btn-s btn-sm">Remitir a {{ r.destino.nombre }}</button></form>
+  {% endif %}</div>
+</div>
+{% endfor %}
+
+<div class="cols" style="margin-top:8px">
+  <div class="stack">
+    {% if user.puede_operar %}
+    <form class="card" method="post" action="{{ url_for('albergues.registrar_familia') }}">
+      {% include "_csrf.html" %}
+      <h3>Registrar familia</h3>
+      <p class="hint">Solo lo mínimo: un identificador y cuántas personas llegan. Las personas que se registran en el formulario como «Persona albergada» aparecen aquí solas.</p>
+      <div class="f2">
+        <div><label class="lbl" for="fc">Identificador</label><input id="fc" name="codigo" class="field sm num" value="{{ siguiente }}" required></div>
+        <div><label class="lbl" for="fn">Integrantes</label><input id="fn" name="integrantes" type="number" min="1" max="20" value="4" class="field sm num" required></div>
+      </div>
+      <button class="btn btn-p" style="margin-top:14px">Registrar familia</button>
+    </form>
+    {% endif %}
+    <div class="card">
+      <h3>Familias en espera de cupo</h3>
+      <p class="hint">El sistema bloquea la asignación si no hay cupos suficientes.</p>
+      <div class="list">
+      {% for f in pendientes %}
+        <div class="row"><div class="l"><b class="num">{{ f.codigo }}</b><small>{{ f.integrantes }} personas · registrada {{ f.registrada_en|fecha }}{% if f.responsable %} · {{ f.responsable }}{% endif %}</small></div>
+          {% if user.puede_operar %}
+          <form method="post" action="{{ url_for('albergues.asignar', fid=f.id) }}">{% include "_csrf.html" %}<button class="btn btn-p btn-xs" {{ 'disabled' if f.integrantes > alb.disponibles }}>{{ 'Sin cupos' if f.integrantes > alb.disponibles else 'Asignar cupo' }}</button></form>
+          {% else %}<span class="tag t-warn">En espera</span>{% endif %}
+        </div>
+      {% else %}<p class="empty">No hay familias en espera.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Familias alojadas <span class="count">{{ alojadas|length }}</span></h3>
+    <p class="hint">Al registrar la salida, sus cupos quedan libres.</p>
+    <div class="list" style="max-height:520px;overflow:auto">
+    {% for f in alojadas %}
+      <div class="row"><div class="l"><b class="num">{{ f.codigo }}</b><small>{{ f.integrantes }} personas · ingreso {{ f.alojada_en|fecha }}</small></div>
+        {% if user.puede_operar %}<form method="post" action="{{ url_for('albergues.salida', fid=f.id) }}">{% include "_csrf.html" %}<button class="btn btn-s btn-xs">Registrar salida</button></form>{% else %}<span class="tag t-ok">Con cupo</span>{% endif %}
+      </div>
+    {% else %}<p class="empty">Aún no hay familias alojadas.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="sec"><h3>Cupos en la ciudad</h3><small>Todos los albergues activos · toca uno para verlo</small></div>
+<div class="shgrid">
+{% for c in ciudad %}{% set lv = nivel_ocupacion(c.ocupacion) %}
+  <a class="card shcard" href="?a={{ c.albergue_id }}" {{ 'style=border-color:#14365C' if c.albergue_id == alb.albergue_id }}>
+    <span class="shh"><b>{{ c.nombre }}</b><span class="tag {{ 't-crit' if c.criticas else 't-warn' if lv=='warn' else 't-ok' }}">{{ 'Crítico' if c.criticas else 'Atención' if lv=='warn' else 'Estable' }}</span></span>
+    <span><span class="cap"><span class="lbl" style="margin:0">Ocupación</span><span class="big num">{{ (c.ocupacion*100)|round|int }}%</span></span><span class="meter {{ lv }}" style="display:block"><i style="width: {{ [3, (c.ocupacion*100)|round(1)]|max }}%"></i></span></span>
+    <span class="mini num"><span><b>{{ c.disponibles }}</b>cupos libres de {{ c.capacidad }}</span><span><b>{{ c.personas_en_espera }}</b>personas en espera</span></span>
+  </a>
+{% endfor %}
+</div>
+{% endblock %}

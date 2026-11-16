@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<section style="max-width:640px">
+  <div class="card">
+    <span class="tag {{ 't-warn' if codigo == 403 else 't-neu' }}">{{ ic('lock', 14) if codigo == 403 }} Error {{ codigo }}</span>
+    <h3 style="margin-top:12px;font-size:22px">{{ titulo }}</h3>
+    <p class="hint">{{ mensaje }}</p>
+    <a class="btn btn-p btn-sm" href="{{ url_for('inicio') }}">Ir a Albergues</a>
+  </div>
+</section>
+{% endblock %}

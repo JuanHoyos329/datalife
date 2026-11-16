@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Alertas{% endblock %}
+{% block content %}
+{% with titulo="Alertas activas", lead="Sobreocupación, familias que no caben, escasez de recursos y necesidades de prioridad alta. Se recalculan con cada registro.", extra_ver=('todas' if todas else None) %}{% include "_albsel.html" %}{% endwith %}
+
+<div class="kpis k3">
+{% for r in resumen %}
+  <a class="kpi" href="?a={{ r.albergue_id }}" style="text-decoration:none;color:inherit;{{ 'border-color:#14365C' if r.albergue_id == alb.albergue_id and not todas }}">
+    <div class="k">{{ r.nombre }}<span class="tag {{ 't-crit' if r.criticas else 't-warn' if r.atencion else 't-ok' }}">{{ 'Crítico' if r.criticas else 'Atención' if r.atencion else 'Estable' }}</span></div>
+    <div class="v num">{{ r.criticas }}<small>críticas · {{ r.atencion }} de atención</small></div>
+  </a>
+{% endfor %}
+</div>
+
+<div class="rowf" style="margin-bottom:14px">
+  <a class="btn btn-sm {{ 'btn-p' if not todas else 'btn-s' }}" href="?a={{ alb.albergue_id }}">Solo {{ alb.nombre }}</a>
+  <a class="btn btn-sm {{ 'btn-p' if todas else 'btn-s' }}" href="?ver=todas">Todos los albergues</a>
+</div>
+
+<div class="alerts">
+{% for a in filas %}
+  <div class="alert {{ 'a-crit' if a.nivel == 'critica' else 'a-warn' }}" {{ 'role=alert' if a.nivel == 'critica' }}>
+    <span class="ai">{{ ic('crit' if a.nivel == 'critica' else 'alert', 22) }}</span>
+    <div><div class="at"><span class="tag {{ 't-crit' if a.nivel == 'critica' else 't-warn' }}">{{ 'Crítica' if a.nivel == 'critica' else 'Atención' }}</span>{{ a.titulo }}{% if todas %} <span class="tag t-neu">{{ a.albergue }}</span>{% endif %}</div>
+    <p>{{ a.detalle }}</p></div>
+  </div>
+{% else %}
+  <div class="banner b-ok">{{ ic('ok') }}<div><b>Sin alertas activas</b>Ocupación e inventario dentro de los rangos esperados.</div></div>
+{% endfor %}
+</div>
+<p class="note" style="margin-top:18px">Reglas: ocupación ≥ 100 % crítica y ≥ 90 % atención · recurso con menos de 2 días crítico y menos de 4 días atención · familia en espera que no cabe: crítica · necesidad alta sin atender: atención.</p>
+{% endblock %}

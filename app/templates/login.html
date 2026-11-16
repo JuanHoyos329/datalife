@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Ingresar{% endblock %}
+{% block content %}
+<section>
+<h2 class="h2">Ingresar a DataLife</h2>
+<p class="lead">Cada rol ve solo lo que necesita. Fundador y Coordinador acceden a Simulacros y al censo; los demás roles ven Albergues.</p>
+<div class="login">
+  <form class="card" method="post">
+    {% include "_csrf.html" %}
+    <h3>Inicio de sesión</h3>
+    <p class="hint">Usuario y clave asignados por el coordinador.</p>
+    <div class="stack">
+      <div><label class="lbl" for="u">Usuario</label><input id="u" name="usuario" class="field" autocomplete="username" required autofocus></div>
+      <div><label class="lbl" for="c">Clave</label><input id="c" name="clave" type="password" class="field" autocomplete="current-password" required></div>
+      {% if error %}<div class="banner b-crit" role="alert">{{ ic('crit') }}<div><b>No se pudo ingresar</b>{{ error }}</div></div>{% endif %}
+      <button type="submit" class="btn btn-p">Ingresar</button>
+    </div>
+  </form>
+  <div class="card">
+    <h3>¿Qué ve cada rol?</h3>
+    <div class="list">
+      <div class="row"><div class="l"><b>Fundador</b><small>Todo: albergues, censo, simulacros, ETL y usuarios.</small></div><span class="tag t-nav">Nivel 1</span></div>
+      <div class="row"><div class="l"><b>Coordinador</b><small>Todo lo anterior; no puede crear fundadores.</small></div><span class="tag t-nav">Nivel 2</span></div>
+      <div class="row"><div class="l"><b>Voluntario / Brigadista</b><small>Solo Albergues: cupos, recursos y alertas.</small></div><span class="tag t-neu">Nivel 3</span></div>
+    </div>
+  </div>
+</div>
+</section>
+{% endblock %}

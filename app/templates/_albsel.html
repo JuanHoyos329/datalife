@@ -1,0 +1,14 @@
+<div class="albsel">
+  <div>
+    <h2 class="h2">{{ titulo }}</h2>
+    <p class="lead" style="margin-bottom:0">{{ lead }}</p>
+  </div>
+  <form method="get">
+    {% if extra_ver %}<input type="hidden" name="ver" value="{{ extra_ver }}">{% endif %}
+    <div><label class="lbl" for="selA">Albergue</label>
+      <select id="selA" name="a" class="field sm" onchange="this.form.submit()">
+        {% for x in albergues %}<option value="{{ x.albergue_id }}" {{ 'selected' if x.albergue_id == alb.albergue_id }}>{{ x.nombre }}</option>{% endfor %}
+      </select></div>
+    <noscript><button class="btn btn-s btn-sm">Ver</button></noscript>
+  </form>
+</div>

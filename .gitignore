@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+credenciales*.json
+.\datalife\upbeat-beach-514908-n4-a5da855d4b13.jsonupbeat-beach-*.json

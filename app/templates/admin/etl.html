@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}ETL{% endblock %}
+{% block content %}
+{% with sub='etl' %}{% include "admin/_sub.html" %}{% endwith %}
+<h2 class="h2">ETL: Google Forms → Sheets → base de datos</h2>
+<p class="lead">El ETL corre solo (GitHub Actions cada 15 minutos, y al instante con el activador del formulario). Aquí puedes correrlo a mano.</p>
+<div class="cols">
+  <form class="card" method="post" action="{{ url_for('admin.correr_etl') }}" enctype="multipart/form-data">
+    {% include "_csrf.html" %}
+    <h3>Correr el ETL ahora</h3>
+    {% if sheets %}
+      <p class="hint">Conectado a la hoja <span class="num">{{ sheet_id[:10] }}…</span>. Deja el archivo vacío para leer Google Sheets.</p>
+    {% else %}
+      <p class="hint">Google Sheets aún no está configurado (faltan GOOGLE_SHEET_ID y GOOGLE_SERVICE_ACCOUNT_JSON). Mientras tanto, descarga la hoja como .csv o .xlsx y súbela aquí.</p>
+    {% endif %}
+    <div class="stack">
+      <div><label class="lbl" for="ar">Archivo (opcional)</label><input id="ar" type="file" name="archivo" accept=".csv,.xlsx" class="field sm" style="padding-top:10px"></div>
+      <button class="btn btn-p">Correr ETL</button>
+    </div>
+  </form>
+  <div class="card">
+    <h3>Filas rechazadas en la última carga</h3>
+    <p class="hint">No se guardan. Corrige la respuesta en la hoja y vuelve a correr el ETL.</p>
+    <div class="list">{% for r in rechazos %}<div class="row"><div class="l"><b>Fila {{ r.fila }}</b><small>{{ r.motivo }}</small></div><span class="tag t-warn">Rechazada</span></div>{% else %}<p class="empty">Ninguna.</p>{% endfor %}</div>
+  </div>
+</div>
+<div class="sec"><h3>Ejecuciones</h3></div>
+<div class="tblwrap"><table class="dtable">
+  <thead><tr><th>#</th><th>Inicio</th><th>Fuente</th><th class="r">Leídas</th><th class="r">Nuevas</th><th class="r">Actualizadas</th><th class="r">Rechazadas</th><th>Estado</th></tr></thead>
+  <tbody>{% for c in corridas %}<tr><td class="num">{{ c.id }}</td><td class="num">{{ c.inicio|fecha }}</td><td>{{ c.fuente }}{% if c.mensaje %}<small>{{ c.mensaje }}</small>{% endif %}</td><td class="r num">{{ c.filas_leidas }}</td><td class="r num">{{ c.insertadas }}</td><td class="r num">{{ c.actualizadas }}</td><td class="r num">{{ c.rechazadas }}</td><td><span class="tag {{ 't-ok' if c.estado == 'ok' else 't-crit' if c.estado == 'error' else 't-neu' }}">{{ c.estado }}</span></td></tr>
+  {% else %}<tr><td colspan="8"><p class="empty">Todavía no se ha corrido el ETL.</p></td></tr>{% endfor %}</tbody>
+</table></div>
+<div class="sec"><h3>Bitácora</h3><small>Quién hizo qué y cuándo (últimas 40 acciones)</small></div>
+<div class="tblwrap"><table class="dtable">
+  <thead><tr><th>Fecha</th><th>Usuario</th><th>Tipo</th><th>Detalle</th></tr></thead>
+  <tbody>{% for b in bita %}<tr><td class="num">{{ b.en|fecha('%d/%m %H:%M:%S') }}</td><td>{{ b.usuario or 'sistema' }}</td><td><span class="tag t-neu">{{ b.tipo }}</span></td><td>{{ b.detalle }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

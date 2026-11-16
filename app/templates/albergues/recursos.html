@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Recursos · {{ alb.nombre }}{% endblock %}
+{% block content %}
+{% with titulo="Recursos del albergue", lead="Inventario con días restantes al consumo actual, necesidades pendientes y entregas.", extra_ver=None %}{% include "_albsel.html" %}{% endwith %}
+
+<div class="kpis k3">
+  <div class="kpi">
+    {% set lv = nivel_dias(peor.dias_restantes) if peor else 'ok' %}
+    <div class="k">Proyección de inventario<span class="tag {{ 't-crit' if lv=='crit' else 't-warn' if lv=='warn' else 't-ok' }}">{{ 'Crítico' if lv=='crit' else 'Bajo' if lv=='warn' else 'Suficiente' }}</span></div>
+    <div class="v num">{{ peor.dias_restantes|n(1) if peor else '—' }}<small>días</small></div>
+    <div class="sub">{{ peor.nombre if peor else 'Sin consumo' }} es el recurso vital más crítico</div>
+    <div class="f">Existencias ÷ (personas alojadas × consumo diario por persona)</div>
+  </div>
+  <div class="kpi">
+    {% set lc = 'crit' if cobertura < 0.5 else 'warn' if cobertura < 0.8 else 'ok' %}
+    <div class="k">Nivel de cobertura<span class="tag {{ 't-crit' if lc=='crit' else 't-warn' if lc=='warn' else 't-ok' }}">{{ 'Bajo' if lc!='ok' else 'Bueno' }}</span></div>
+    <div class="v num">{{ (cobertura*100)|round|int }}<small>%</small></div>
+    <div class="meter {{ lc }}"><i style="width: {{ [3, cobertura*100]|max }}%"></i></div>
+    <div class="sub num">{{ activas - con_pend }} de {{ activas }} familias sin necesidades pendientes</div>
+    <div class="f">Familias con necesidades cubiertas ÷ familias registradas</div>
+  </div>
+  <div class="kpi">
+    <div class="k">Necesidades pendientes</div>
+    <div class="pcount num">
+      <div class="t-crit"><b>{{ necesidades|selectattr('prioridad','equalto','alta')|list|length }}</b><span> Alta</span></div>
+      <div class="t-warn"><b>{{ necesidades|selectattr('prioridad','equalto','media')|list|length }}</b><span> Media</span></div>
+      <div class="t-ok"><b>{{ necesidades|selectattr('prioridad','equalto','baja')|list|length }}</b><span> Baja</span></div>
+    </div>
+    <div class="f">Se cubren al registrar una entrega del mismo recurso</div>
+  </div>
+</div>
+
+<div class="sec"><h3>Inventario de recursos</h3><small>Consumo estimado con {{ alb.ocupados }} personas alojadas</small></div>
+<div class="tblwrap">
+<table class="dtable">
+  <thead><tr><th>Recurso</th><th class="r">Disponible</th><th class="r">Consumo / día</th><th>Días restantes</th><th>Estado</th></tr></thead>
+  <tbody>
+  {% for r in inv %}{% set lv = nivel_dias(r.dias_restantes) %}
+    <tr>
+      <td><b>{{ r.nombre }}</b><small>{{ r.tipo }} · {{ r.consumo_pp_dia|n(2) }} {{ r.unidad }}/persona/día</small></td>
+      <td class="r num">{{ r.existencias|n }} {{ r.unidad }}</td>
+      <td class="r num">{{ r.consumo_dia|n(1) }} {{ r.unidad }}</td>
+      <td class="num" style="min-width:160px"><b>{{ r.dias_restantes|n(1) if r.dias_restantes is not none else '—' }}{{ ' días' if r.dias_restantes is not none }}</b>
+        <span class="meter {{ lv }}" style="display:block;margin-top:6px"><i style="width: {{ [3, [100, (r.dias_restantes or 14) / 14 * 100]|min]|max }}%"></i></span></td>
+      <td><span class="tag {{ 't-crit' if lv=='crit' else 't-warn' if lv=='warn' else 't-ok' }}">{{ 'Crítico' if lv=='crit' else 'Bajo' if lv=='warn' else 'Suficiente' }}</span></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% if user.puede_operar %}
+<div class="cols" style="margin-top:22px">
+  <form class="card" method="post" action="{{ url_for('albergues.entrega') }}">
+    {% include "_csrf.html" %}
+    <h3>Registrar entrega</h3>
+    <p class="hint">Descuenta del inventario y deja trazabilidad: qué, cuánto, a quién y cuándo.</p>
+    <div class="stack">
+      <div class="f2">
+        <div><label class="lbl" for="er">Recurso</label><select id="er" name="recurso" class="field sm">{% for r in recursos %}<option value="{{ r.codigo }}">{{ r.nombre }} ({{ r.unidad }})</option>{% endfor %}</select></div>
+        <div><label class="lbl" for="ec">Cantidad</label><input id="ec" name="cantidad" type="number" min="1" step="any" value="10" class="field sm num" required></div>
+      </div>
+      <div><label class="lbl" for="ef">Familia</label><select id="ef" name="familia" class="field sm" required>{% for f in familias %}<option value="{{ f.id }}">{{ f.codigo }} · {{ f.integrantes }} personas{{ ' · en espera' if f.estado == 'pendiente' }}</option>{% endfor %}</select></div>
+      <button class="btn btn-p">Registrar entrega</button>
+    </div>
+  </form>
+  <div class="stack">
+    <form class="card" method="post" action="{{ url_for('albergues.necesidad') }}">
+      {% include "_csrf.html" %}
+      <h3>Registrar necesidad</h3>
+      <p class="hint">Familia, tipo y prioridad.</p>
+      <div class="stack">
+        <div class="f2">
+          <div><label class="lbl" for="nf">Familia</label><select id="nf" name="familia" class="field sm">{% for f in familias %}<option value="{{ f.id }}">{{ f.codigo }}</option>{% endfor %}</select></div>
+          <div><label class="lbl" for="nr">Tipo</label><select id="nr" name="recurso" class="field sm">{% for r in recursos %}<option value="{{ r.codigo }}">{{ r.nombre }}</option>{% endfor %}</select></div>
+        </div>
+        <div><span class="lbl">Prioridad</span><div class="rowf">
+          {% for k, v in PRIO.items() %}<label class="chk"><input type="radio" name="prioridad" value="{{ k }}" {{ 'checked' if k == 'alta' }}><span>{{ v[0] }}</span></label>{% endfor %}</div></div>
+        <button class="btn btn-s">Registrar necesidad</button>
+      </div>
+    </form>
+    <form class="card" method="post" action="{{ url_for('albergues.ingreso') }}">
+      {% include "_csrf.html" %}
+      <h3>Ingreso de donación o compra</h3>
+      <div class="f2">
+        <div><label class="lbl" for="ir">Recurso</label><select id="ir" name="recurso" class="field sm">{% for r in recursos %}<option value="{{ r.codigo }}">{{ r.nombre }}</option>{% endfor %}</select></div>
+        <div><label class="lbl" for="ic">Cantidad</label><input id="ic" name="cantidad" type="number" min="1" step="any" class="field sm num" required></div>
+      </div>
+      <button class="btn btn-s" style="margin-top:12px">Sumar al inventario</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="two" style="margin-top:22px">
+  <div class="card">
+    <h3>Necesidades pendientes</h3>
+    <p class="hint">Ordenadas por prioridad.</p>
+    <div class="list">
+    {% for n in necesidades %}
+      <div class="row"><div class="l"><b>{{ n.recurso_nombre }}</b><small class="num">{{ n.familia }} · {{ n.registrada_en|fecha }}</small></div><span class="tag {{ PRIO[n.prioridad][1] }}">{{ PRIO[n.prioridad][0] }}</span></div>
+    {% else %}<p class="empty">No hay necesidades pendientes.</p>{% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h3>Últimas entregas</h3>
+    <p class="hint">Trazabilidad: qué se entregó, a quién y cuándo.</p>
+    <div class="list">
+    {% for e in entregas %}
+      <div class="row"><div class="l"><b>{{ e.cantidad|n }} {{ e.unidad }} · {{ e.recurso_nombre }}</b><small class="num">{{ e.familia }} · {{ e.fecha|fecha('%d/%m/%Y') }}</small></div><span class="tag t-neu num">{{ e.codigo }}</span></div>
+    {% else %}<p class="empty">Aún no hay entregas.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

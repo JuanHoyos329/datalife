@@ -1,0 +1,52 @@
+# Todo DataLife en tu computador:  docker compose up --build
+# App en http://localhost:8000  ·  usuarios demo: fundador / coordinador / voluntario / brigada
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: datalife
+      POSTGRES_USER: datalife
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-datalife}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datalife -d datalife"]
+      interval: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://datalife:${POSTGRES_PASSWORD:-datalife}@db:5432/datalife
+      SECRET_KEY: ${SECRET_KEY:-cambia-esta-clave-en-produccion}
+      SEED_DEMO: ${SEED_DEMO:-1}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-datalife2026}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ETL programado: lee Google Sheets cada ETL_INTERVALO segundos (por defecto 15 min).
+  # Solo arranca con:  docker compose --profile etl up
+  etl:
+    build: .
+    profiles: ["etl"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://datalife:${POSTGRES_PASSWORD:-datalife}@db:5432/datalife
+    command: sh -c 'while true; do python -m etl.etl_personas || true; sleep ${ETL_INTERVALO:-900}; done'
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

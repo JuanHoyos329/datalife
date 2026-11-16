@@ -1,0 +1,4 @@
+<div class="rowf" style="margin-bottom:16px">
+  <a class="btn btn-sm {{ 'btn-p' if sub == 'etl' else 'btn-s' }}" href="{{ url_for('admin.etl') }}">ETL y bitácora</a>
+  <a class="btn btn-sm {{ 'btn-p' if sub == 'usuarios' else 'btn-s' }}" href="{{ url_for('admin.usuarios') }}">Usuarios y roles</a>
+</div>

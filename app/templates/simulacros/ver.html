@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ s.codigo }}{% endblock %}
+{% block content %}
+<div style="margin-bottom:14px"><a class="btn btn-s btn-sm" href="{{ url_for('simulacros.lista') }}">← Simulacros</a></div>
+<div class="card">
+  <div class="live">
+    <div><span class="tag {{ estado[1] }}">{{ estado[0] }}</span><h3 style="margin-top:8px">{{ s.codigo }} · {{ s.descripcion }}</h3>
+      <p class="hint" style="margin:0">{{ TIPOS[s.tipo] }} · programado {{ s.programado_para|fecha }} · meta {{ s.meta_pct }} %</p></div>
+    {% if s.iniciado_en %}
+    <div><span class="lbl" style="margin-bottom:2px">Tiempo transcurrido</span><div class="clock num" id="clock" data-inicio="{{ s.iniciado_en.isoformat() }}" role="timer" aria-live="off">00:00</div></div>
+    <div class="btns">
+      <form method="post" action="{{ url_for('simulacros.demo', sid=s.id) }}">{% include "_csrf.html" %}<button class="btn btn-s btn-sm" title="Simula llegadas hasta la meta">Modo demo</button></form>
+      <button type="button" class="btn btn-c btn-sm" onclick="document.getElementById('fin').hidden=false">Finalizar simulacro</button>
+    </div>
+    {% else %}
+    <form method="post" action="{{ url_for('simulacros.iniciar', sid=s.id) }}">{% include "_csrf.html" %}<button class="btn btn-p">Iniciar simulacro</button></form>
+    {% endif %}
+  </div>
+  <form id="fin" hidden method="post" action="{{ url_for('simulacros.finalizar', sid=s.id) }}" class="stack" style="margin-top:16px;border-top:1px solid #DCDFDA;padding-top:16px">
+    {% include "_csrf.html" %}
+    <div class="banner b-warn">{{ ic('alert') }}<div><b>¿Finalizar {{ s.codigo }}?</b>Quedan {{ d.faltantes|length }} personas sin registrar. Se genera el informe.</div></div>
+    <div><label class="lbl" for="obs">Observaciones (aparecen en el informe)</label><textarea id="obs" name="observaciones" class="field"></textarea></div>
+    <div class="btns"><button type="button" class="btn btn-s btn-sm" onclick="document.getElementById('fin').hidden=true">Cancelar</button><button class="btn btn-c btn-sm">Confirmar fin</button></div>
+  </form>
+</div>
+
+{% for a in d.alertas %}
+<div class="alert a-crit" role="alert" style="margin-top:10px"><span class="ai">{{ ic('crit', 22) }}</span><div><div class="at"><span class="tag t-crit">Crítica</span>{{ a.titulo }}</div><p>{{ a.detalle }}</p></div></div>
+{% endfor %}
+
+<div class="kpis">
+  <div class="kpi"><div class="k">Presentes</div><div class="v num">{{ d.presentes }}<small>/ {{ d.esperados }}</small></div>
+    <div class="meter {{ 'ok' if d.pct*100 >= s.meta_pct else 'warn' }}"><i style="width: {{ [3, d.pct*100]|max }}%"></i></div><div class="f">Meta {{ s.meta_pct }} %</div></div>
+  <div class="kpi"><div class="k">% evacuado</div><div class="v num">{{ (d.pct*100)|round|int }}<small>%</small></div><div class="f">Presentes ÷ personas del censo</div></div>
+  <div class="kpi"><div class="k">Faltantes<span class="tag {{ 't-crit' if d.prio_tot - d.prio_pres else 't-ok' }}">{{ d.prio_tot - d.prio_pres }} prioritarios</span></div><div class="v num">{{ d.faltantes|length }}</div><div class="f">Prioritarios primero en la lista</div></div>
+  <div class="kpi"><div class="k">Por punto de encuentro</div>
+    <div class="list">{% for p in d.puntos %}<div class="row" style="padding:4px 0"><span>{{ p.punto }}</span><b class="num">{{ p.n }}</b></div>{% else %}<span class="count">Sin llegadas</span>{% endfor %}</div></div>
+</div>
+
+<div class="cols">
+  <div class="card">
+    <h3>Check-in en el punto de encuentro</h3>
+    {% if s.iniciado_en %}
+    <p class="hint">Escribe o escanea el código (P-0001, o solo 1) o el número de documento y pulsa Enter. Un lector QR tipo teclado funciona igual.</p>
+    <form method="post" action="{{ url_for('simulacros.checkin', sid=s.id) }}" class="stack" id="ciForm">
+      {% include "_csrf.html" %}
+      <div><label class="lbl" for="pt">Tu punto de encuentro</label><select id="pt" name="punto" class="field sm">
+        <option value="">El asignado a cada persona</option>
+        {% for p in ['Zona verde norte', 'Parqueadero de visitantes'] %}<option {{ 'selected' if request.args.get('punto') == p }}>{{ p }}</option>{% endfor %}</select></div>
+      <div><label class="lbl" for="ci">Código</label><input id="ci" name="codigo" class="field ci-field num" autocomplete="off" autofocus required></div>
+      <button class="btn btn-p">Registrar llegada</button>
+    </form>
+    <form method="post" action="{{ url_for('simulacros.deshacer', sid=s.id) }}" style="margin-top:10px">{% include "_csrf.html" %}<button class="btn btn-s btn-sm">Deshacer el último</button></form>
+    <div class="sec" style="margin-top:20px"><h3 style="font-size:16px">Últimas llegadas</h3></div>
+    <div class="list">{% for r in d.recientes %}<div class="row"><div class="l"><b>{{ r.nombre }}</b><small class="num">{{ r.codigo }} · {{ r.punto_encuentro }} · {{ r.registrado_en|fecha('%H:%M:%S') }}</small></div><span class="tag t-ok">Presente</span></div>{% else %}<p class="empty">Aún no hay llegadas.</p>{% endfor %}</div>
+    {% else %}
+    <div class="banner b-info">{{ ic('info') }}<div><b>El simulacro no ha iniciado</b>Cuando pulses «Iniciar simulacro», aquí aparecerá el campo para registrar las llegadas.</div></div>
+    {% endif %}
+  </div>
+  <div class="card">
+    <div class="sechead" style="margin-bottom:4px"><h3>Faltantes ({{ d.faltantes|length }})</h3><small class="count">Prioritarios primero, luego por torre y apartamento</small></div>
+    <div class="list" style="max-height:640px;overflow:auto">
+    {% for m in d.faltantes %}
+      <div class="row"><div class="l"><b>{{ m.nombre }}</b><small class="num">{{ m.codigo }} · {{ m.torre_area or '' }} {{ m.apto_cargo or '' }} · {{ m.punto_encuentro or '—' }}</small></div>
+        <span class="tagrow" style="margin:0">{% if m.grupo_prioritario != 'ninguno' %}<span class="tag t-crit">{{ GRUPOS[m.grupo_prioritario] }}</span>{% endif %}<span class="tag t-warn">Faltante</span></span></div>
+    {% else %}<div class="banner b-ok">{{ ic('ok') }}<div><b>Todas las personas están en el punto de encuentro</b>Ya puedes finalizar el simulacro.</div></div>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var el = document.getElementById('clock');
+  if (el) {
+    var t0 = new Date(el.dataset.inicio).getTime();
+    var tick = function () {
+      var s = Math.max(0, Math.floor((Date.now() - t0) / 1000));
+      var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
+      el.textContent = (h ? h + ':' : '') + String(m).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+    };
+    tick(); setInterval(tick, 1000);
+    // Si otro dispositivo registra llegadas, recarga cuando el campo esté vacío
+    var ultimo = null, input = document.getElementById('ci');
+    setInterval(function () {
+      fetch('{{ url_for("simulacros.estado_json", sid=s.id) }}').then(function (r) { return r.json(); }).then(function (j) {
+        var k = j.presentes + '/' + j.alertas;
+        if (ultimo !== null && k !== ultimo && (!input || !input.value)) location.reload();
+        ultimo = k;
+      }).catch(function () {});
+    }, 8000);
+  }
+})();
+</script>
+{% endblock %}
