@@ -128,7 +128,7 @@ La URL de conexión que usan la app y el ETL (`DATABASE_URL`) se copia en Supaba
 Session pooler**. Cópiala tal cual de Supabase; se ve así (con tu contraseña en lugar de `[TU-CLAVE]`):
 
 ```
-postgresql://postgres.abqdtjxghgnlbidexdhp:[TU-CLAVE]@aws-X-us-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.abqdtjxghgnlbidexdhp:[TU-CLAVE]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
 ```
 
 Usa el *Session pooler* (no la *Direct connection*, que es solo IPv6 y Render y GitHub no siempre llegan a ella).
