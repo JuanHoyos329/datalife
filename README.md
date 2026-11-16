@@ -188,15 +188,14 @@ conectado a este repositorio: cada `git push` a `main` vuelve a desplegar solo.
 
 | Qué | Encender | Apagar |
 |---|---|---|
-| **Todo, con un botón** | GitHub → *Actions* → **Encender / apagar DataLife** → *Run workflow* → `encender` | lo mismo con `apagar` |
-| Página web (Render) | Render → servicio `datalife` → **Resume Service** | Render → servicio `datalife` → **Suspend Service** |
-| ETL automático | GitHub → *Actions* → *ETL Google Sheets…* → **Enable workflow** | **Disable workflow** |
+| **Página web (Render)** | Render → servicio `datalife` → **Resume Service** | Render → servicio `datalife` → **Suspend Service** |
+| ETL automático (Apps Script) | En la hoja: Apps Script → ejecutar `instalarEtlCada15Min` | Ejecutar `quitarEtlCada15Min` |
 | Base de datos (Supabase) | Supabase → proyecto → **Restore project** | Project Settings → General → **Pause project** |
 | En tu computador | `docker compose up -d` | `docker compose down` (los datos quedan en el volumen) |
 
-El botón de GitHub suspende o reanuda la página en Render y pausa o activa el ETL. Para que funcione, agrega dos secretos:
-- `RENDER_API_KEY`: Render → *Account Settings → API Keys → Create API Key*.
-- `RENDER_SERVICE_ID`: el código `srv-…` que aparece en la URL del servicio en Render.
+**GitHub Actions está desactivado** (desde el 16/11/2026): el despliegue lo hace Render solo con cada cambio en `main` y el ETL
+llega desde Apps Script. Los archivos siguen en `.github/workflows/` por si se necesitan: para volver a usarlos, GitHub → *Actions* →
+elige el flujo → **Enable workflow** (el botón *Encender / apagar* necesita además los secretos `RENDER_API_KEY` y `RENDER_SERVICE_ID`).
 
 La base de Supabase no hace falta apagarla: el plan gratis no cobra por estar encendida. Si nadie la usa en 7 días, Supabase la
 pausa sola; se reactiva con *Restore project*. Apagada la página, la URL muestra un aviso de Render; al encenderla tarda
