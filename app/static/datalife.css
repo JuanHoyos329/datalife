@@ -2,20 +2,19 @@
    DataLife · sistema visual "Noche"
    Negro por defecto, tema claro opcional (html[data-theme="light"]).
    Acento: naranja de seguridad (cálido, visible, amable). Estados: rojo,
-   ámbar y verde menta. Tipografía: Sora (títulos y cifras) + DM Sans (texto), OFL, locales.
+   ámbar y verde menta. Tipografía: Manrope (OFL, local).
    Todo color de la interfaz sale de estas variables.
    ===================================================================== */
 
-@font-face{font-family:'DM Sans';font-style:normal;font-weight:400;font-display:swap;src:url(/static/fonts/dm-sans-latin-400-normal.woff2) format('woff2')}
-@font-face{font-family:'DM Sans';font-style:normal;font-weight:500;font-display:swap;src:url(/static/fonts/dm-sans-latin-500-normal.woff2) format('woff2')}
-@font-face{font-family:'DM Sans';font-style:normal;font-weight:600;font-display:swap;src:url(/static/fonts/dm-sans-latin-600-normal.woff2) format('woff2')}
-@font-face{font-family:'DM Sans';font-style:normal;font-weight:700;font-display:swap;src:url(/static/fonts/dm-sans-latin-700-normal.woff2) format('woff2')}
-@font-face{font-family:'Sora';font-style:normal;font-weight:600;font-display:swap;src:url(/static/fonts/sora-latin-600-normal.woff2) format('woff2')}
-@font-face{font-family:'Sora';font-style:normal;font-weight:700;font-display:swap;src:url(/static/fonts/sora-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:400;font-display:swap;src:url(/static/fonts/manrope-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:500;font-display:swap;src:url(/static/fonts/manrope-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:600;font-display:swap;src:url(/static/fonts/manrope-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:700;font-display:swap;src:url(/static/fonts/manrope-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:800;font-display:swap;src:url(/static/fonts/manrope-latin-800-normal.woff2) format('woff2')}
 
 :root{
-  --font:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --font-d:'Sora','DM Sans',system-ui,sans-serif;
+  --font:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-d:'Manrope',system-ui,sans-serif;
   /* superficies */
   --bg:#050506;--bg2:#0A0A0C;--surface:#111114;--surface2:#17171B;--hover:#1C1C21;--chip:#1E1E24;
   --line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.16);
@@ -684,7 +683,7 @@ html[data-theme="light"] .auth-hero h2 em{background:linear-gradient(100deg,#9A3
 html[data-theme="light"] .field,html[data-theme="light"] .rolepick label,html[data-theme="light"] .pick,html[data-theme="light"] .pb,html[data-theme="light"] .chk{background:var(--surface)}
 @media (max-width:1023px){.shell{background:var(--bg)}}
 
-/* ===== Tipografía: Sora para títulos y cifras, DM Sans para el texto ===== */
+/* ===== Tipografía: Manrope (títulos y cifras con peso 700) ===== */
 .h2,.brand h1,.card h3,.sec h3,.kpi .v,.auth-hero h2,.auth-card h3,.modal h3,.clock,.code-big,.flow b,.cap .big,.mini b,.pcount b,.shcard .shh b{font-family:var(--font-d)}
 .h2{letter-spacing:-.025em;font-weight:700}
 .kpi .v{letter-spacing:-.03em;font-weight:700}
