@@ -25,4 +25,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
   CMD python -c "import urllib.request,os; urllib.request.urlopen('http://127.0.0.1:%s/salud' % os.environ.get('PORT','8000'))" || exit 1
 
 # Render/Railway inyectan $PORT; en local es 8000
-CMD gunicorn wsgi:app --bind 0.0.0.0:${PORT} --workers ${WEB_CONCURRENCY:-2} --threads 4 --timeout 120 --access-logfile -
+# Si WEB_CONCURRENCY llega vacía, gunicorn falla al arrancar: se normaliza aquí
+CMD export WEB_CONCURRENCY="${WEB_CONCURRENCY:-2}" && exec gunicorn wsgi:app --bind 0.0.0.0:${PORT} --workers ${WEB_CONCURRENCY} --threads 4 --timeout 120 --access-logfile -
