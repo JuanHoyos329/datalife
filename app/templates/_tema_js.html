@@ -1,0 +1,15 @@
+<script>
+(function () {
+  var html = document.documentElement;
+  document.querySelectorAll('[data-tema]').forEach(function (b) {
+    b.setAttribute('aria-pressed', html.dataset.theme === 'light');
+    b.addEventListener('click', function () {
+      var t = html.dataset.theme === 'light' ? 'dark' : 'light';
+      html.dataset.theme = t;
+      document.cookie = 'tema=' + t + ';path=/;max-age=31536000;samesite=lax';
+      document.querySelectorAll('[data-tema]').forEach(function (x) { x.setAttribute('aria-pressed', t === 'light'); });
+      var m = document.querySelector('meta[name=theme-color]'); if (m) m.content = t === 'light' ? '#F6F5F2' : '#050506';
+    });
+  });
+})();
+</script>

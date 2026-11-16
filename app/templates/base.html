@@ -1,71 +1,97 @@
 {% from "_icons.html" import ic %}
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="{{ tema or 'dark' }}">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#1B3D6E">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="{{ '#F6F5F2' if tema == 'light' else '#050506' }}">
 <title>{% block title %}DataLife{% endblock %} · DataLife</title>
-<link rel="preload" href="{{ url_for('static', filename='fonts/public-sans-latin-400-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="{{ url_for('static', filename='fonts/public-sans-latin-800-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{{ url_for('static', filename='datalife.css') }}">
+<link rel="preload" href="{{ url_for('static', filename='fonts/plus-jakarta-sans-latin-600-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ url_for('static', filename='fonts/plus-jakarta-sans-latin-800-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{ url_for('static', filename='datalife.css') }}?v=3">
 {% block head %}{% endblock %}
 </head>
 <body>
 <div class="dl">
 {% block shell %}
-{% if user %}
-<header class="appbar">
-  <div class="appbar-in">
-    <div class="bar">
-      <div class="brand">
-        <a href="{{ url_for('inicio') }}" aria-label="DataLife, inicio">
-          <div class="mark">{{ ic('home', 20) }}</div>
-          <div><h1>DataLife</h1><p>{% block subtitle %}Albergues y preparación ante emergencias · Cali{% endblock %}</p></div>
-        </a>
+{% macro links(movil=False) -%}
+  {% set items = [('cupos', 'albergues.cupos', 'bed', 'Cupos'), ('recursos', 'albergues.recursos', 'box', 'Recursos'), ('alertas', 'albergues.alertas', 'alert', 'Alertas')] %}
+  {% set prep = [] %}
+  {% if user.puede_simulacros %}{% set prep = [('personas', 'personas.lista', 'users', 'Censo'), ('simulacros', 'simulacros.lista', 'timer', 'Simulacros')] %}{% endif %}
+  {% set admin = [('admin', 'admin.usuarios', 'db', 'Datos y usuarios')] if user.puede_admin else [] %}
+  {% if not movil %}
+  <div class="navgroup"><span class="navlbl">Albergues</span>
+    {% for s, ep, i, t in items %}<a class="navlink {{ 'on' if seccion == s }}" href="{{ url_for(ep) }}" {{ 'aria-current=page' if seccion == s }}>{{ ic(i, 19) }}{{ t }}</a>{% endfor %}
+  </div>
+  {% if prep %}<div class="navgroup"><span class="navlbl">Preparación</span>
+    {% for s, ep, i, t in prep + admin %}<a class="navlink {{ 'on' if seccion == s }}" href="{{ url_for(ep) }}" {{ 'aria-current=page' if seccion == s }}>{{ ic(i, 19) }}{{ t }}{% if s == 'admin' and solicitudes_pendientes %}<span class="badge" aria-label="{{ solicitudes_pendientes }} solicitudes pendientes">{{ solicitudes_pendientes }}</span>{% endif %}</a>{% endfor %}
+  </div>{% endif %}
+  {% else %}
+    {% for s, ep, i, t in items %}<a class="{{ 'on' if seccion == s }}" href="{{ url_for(ep) }}" {{ 'aria-current=page' if seccion == s }}>{{ ic(i, 22) }}{{ t }}</a>{% endfor %}
+    {% if prep %}
+    <a class="{{ 'on' if seccion == 'simulacros' }}" href="{{ url_for('simulacros.lista') }}">{{ ic('timer', 22) }}Simulacros</a>
+    <details><summary>{{ ic('more', 22) }}Más{% if solicitudes_pendientes %}<span class="badge">{{ solicitudes_pendientes }}</span>{% endif %}</summary>
+      <div class="more">
+        <a href="{{ url_for('personas.lista') }}">{{ ic('users', 20) }}Censo de personas</a>
+        {% if admin %}<a href="{{ url_for('admin.usuarios') }}">{{ ic('db', 20) }}Datos y usuarios{% if solicitudes_pendientes %}<span class="badge" style="position:static;margin-left:auto">{{ solicitudes_pendientes }}</span>{% endif %}</a>{% endif %}
       </div>
-      <div class="userbox">
-        <span class="who"><b>{{ user.nombre }}</b><span>{{ user.rol_nombre }}</span></span>
+    </details>
+    {% endif %}
+  {% endif %}
+{%- endmacro %}
+
+{% if user %}
+<div class="shell">
+  <aside class="side" aria-label="Menú">
+    <div class="brand">
+      <a href="{{ url_for('inicio') }}" aria-label="DataLife, inicio">
+        <span class="mark">{{ ic('home', 20) }}</span>
+        <span><h1>DataLife</h1><p>Albergues · Cali</p></span>
+      </a>
+    </div>
+    <nav aria-label="Secciones">{{ links() }}</nav>
+    <div class="side-foot">
+      <div class="me">
         <span class="avatar" aria-hidden="true">{{ user.nombre.split()[:2]|map('first')|join|upper }}</span>
-        <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
+        <span class="who"><b>{{ user.nombre }}</b><span>{{ user.rol_nombre }}</span></span>
+      </div>
+      <div class="side-actions">
+        <form method="post" action="{{ url_for('auth.logout') }}">
           <input type="hidden" name="csrf" value="{{ csrf_token }}">
-          <button type="submit" class="btn btn-s btn-sm">Salir</button>
+          <button type="submit" class="btn btn-s btn-sm" style="width:100%">{{ ic('out', 18) }}Salir</button>
         </form>
+        {% include "_tema.html" %}
       </div>
     </div>
-    <nav class="mainnav" aria-label="Secciones">
-      <div class="navsec">
-        <span class="navlbl">Albergues</span>
-        <a class="navlink {{ 'on' if seccion == 'cupos' }}" href="{{ url_for('albergues.cupos') }}" {{ 'aria-current=page' if seccion == 'cupos' }}>{{ ic('bed', 18) }}Cupos</a>
-        <a class="navlink {{ 'on' if seccion == 'recursos' }}" href="{{ url_for('albergues.recursos') }}" {{ 'aria-current=page' if seccion == 'recursos' }}>{{ ic('box', 18) }}Recursos</a>
-        <a class="navlink {{ 'on' if seccion == 'alertas' }}" href="{{ url_for('albergues.alertas') }}" {{ 'aria-current=page' if seccion == 'alertas' }}>{{ ic('alert', 18) }}Alertas</a>
-      </div>
-      {% if user.puede_simulacros %}
-      <div class="navsec">
-        <span class="navlbl">Preparación</span>
-        <a class="navlink {{ 'on' if seccion == 'personas' }}" href="{{ url_for('personas.lista') }}" {{ 'aria-current=page' if seccion == 'personas' }}>{{ ic('users', 18) }}Censo</a>
-        <a class="navlink {{ 'on' if seccion == 'simulacros' }}" href="{{ url_for('simulacros.lista') }}" {{ 'aria-current=page' if seccion == 'simulacros' }}>{{ ic('timer', 18) }}Simulacros</a>
-        {% if user.puede_admin %}
-        <a class="navlink {{ 'on' if seccion == 'admin' }}" href="{{ url_for('admin.usuarios') }}" {{ 'aria-current=page' if seccion == 'admin' }}>{{ ic('db', 18) }}Datos y usuarios{% if solicitudes_pendientes %}<span class="badge" aria-label="{{ solicitudes_pendientes }} solicitudes pendientes">{{ solicitudes_pendientes }}</span>{% endif %}</a>
-        {% endif %}
-      </div>
-      {% endif %}
-    </nav>
-  </div>
-</header>
-{% endif %}
+  </aside>
 
+  <div class="content">
+    <header class="topbar">
+      <div class="brand"><a href="{{ url_for('inicio') }}" aria-label="DataLife, inicio"><span class="mark">{{ ic('home', 18) }}</span><span><h1>DataLife</h1></span></a></div>
+      <div class="tb-r">
+        {% include "_tema.html" %}
+        <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
+          <input type="hidden" name="csrf" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn-s btn-sm" aria-label="Salir de {{ user.nombre }}">{{ ic('out', 18) }}Salir</button>
+        </form>
+      </div>
+    </header>
+    <main class="wrap" id="contenido">
+      {% include "_flash.html" %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<nav class="bottomnav" aria-label="Secciones">{{ links(True) }}</nav>
+{% else %}
 <main class="wrap" id="contenido">
-{% with msgs = get_flashed_messages(with_categories=true) %}
-  {% for cat, m in msgs %}
-  <div class="banner {{ 'b-crit' if cat == 'error' else 'b-ok' }} flash" role="status">{{ ic('crit' if cat == 'error' else 'ok') }}<div>{{ m }}</div></div>
-  {% endfor %}
-{% endwith %}
-{% block content %}{% endblock %}
+  {% include "_flash.html" %}
+  {{ self.content() }}
 </main>
+{% endif %}
 {% endblock %}
 </div>
+{% include "_tema_js.html" %}
 {% block scripts %}{% endblock %}
 </body>
 </html>

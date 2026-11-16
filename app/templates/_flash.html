@@ -1,0 +1,3 @@
+{% with msgs = get_flashed_messages(with_categories=true) %}{% for cat, m in msgs %}
+<div class="banner {{ 'b-crit' if cat == 'error' else 'b-ok' }} flash" role="status">{{ ic('crit' if cat == 'error' else 'ok') }}<div>{{ m }}</div></div>
+{% endfor %}{% endwith %}

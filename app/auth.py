@@ -52,7 +52,8 @@ def init_app(app):
         u = g.get("user")
         pend = val("SELECT count(*) FROM usuarios WHERE pendiente") if u and u["puede_admin"] else 0
         return {"csrf_token": session["csrf"], "user": u, "solicitudes_pendientes": pend,
-                "modo_demo": os.environ.get("SEED_DEMO") == "1"}
+                "modo_demo": os.environ.get("SEED_DEMO") == "1",
+                "tema": "light" if request.cookies.get("tema") == "light" else "dark"}
 
     @app.errorhandler(403)
     def prohibido(e):

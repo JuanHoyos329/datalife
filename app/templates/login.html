@@ -5,13 +5,12 @@
   {% include "_auth_side.html" %}
   <main class="auth-main" id="contenido">
     <div class="auth-card">
+      <div class="auth-top">{% include "_tema.html" %}</div>
       <nav class="switch" aria-label="Acceso">
         <a class="on" href="{{ url_for('auth.login') }}" aria-current="page">Ingresar</a>
         <a href="{{ url_for('auth.registro') }}">Crear cuenta</a>
       </nav>
-      {% with msgs = get_flashed_messages(with_categories=true) %}{% for cat, m in msgs %}
-      <div class="banner {{ 'b-crit' if cat == 'error' else 'b-ok' }} mt" role="status">{{ ic('crit' if cat == 'error' else 'ok') }}<div>{{ m }}</div></div>
-      {% endfor %}{% endwith %}
+      <div class="mt">{% include "_flash.html" %}</div>
 
       {% if pendiente %}
       <div class="done">

@@ -7,6 +7,7 @@
   {% include "_auth_side.html" %}
   <main class="auth-main" id="contenido">
     <div class="auth-card">
+      <div class="auth-top">{% include "_tema.html" %}</div>
       <nav class="switch" aria-label="Acceso">
         <a href="{{ url_for('auth.login') }}">Ingresar</a>
         <a class="on" href="{{ url_for('auth.registro') }}" aria-current="page">Crear cuenta</a>
