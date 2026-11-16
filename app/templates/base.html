@@ -6,9 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="{{ '#F6F5F2' if tema == 'light' else '#050506' }}">
 <title>{% block title %}DataLife{% endblock %} · DataLife</title>
-<link rel="preload" href="{{ url_for('static', filename='fonts/plus-jakarta-sans-latin-600-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="{{ url_for('static', filename='fonts/plus-jakarta-sans-latin-800-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{{ url_for('static', filename='datalife.css') }}?v=3">
+<link rel="preload" href="{{ url_for('static', filename='fonts/dm-sans-latin-400-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ url_for('static', filename='fonts/sora-latin-700-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="{{ url_for('static', filename='logo.svg') }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ url_for('static', filename='datalife.css') }}?v=4">
 {% block head %}{% endblock %}
 </head>
 <body>
@@ -45,8 +46,8 @@
   <aside class="side" aria-label="Menú">
     <div class="brand">
       <a href="{{ url_for('inicio') }}" aria-label="DataLife, inicio">
-        <span class="mark">{{ ic('home', 20) }}</span>
-        <span><h1>DataLife</h1><p>Albergues · Cali</p></span>
+        <span class="mark">{{ ic('logo', 22) }}</span>
+        <span><h1>Data<span>Life</span></h1></span>
       </a>
     </div>
     <nav aria-label="Secciones">{{ links() }}</nav>
@@ -67,7 +68,7 @@
 
   <div class="content">
     <header class="topbar">
-      <div class="brand"><a href="{{ url_for('inicio') }}" aria-label="DataLife, inicio"><span class="mark">{{ ic('home', 18) }}</span><span><h1>DataLife</h1></span></a></div>
+      <div class="brand"><a href="{{ url_for('inicio') }}" aria-label="DataLife, inicio"><span class="mark">{{ ic('logo', 20) }}</span><span><h1>Data<span>Life</span></h1></span></a></div>
       <div class="tb-r">
         {% include "_tema.html" %}
         <form method="post" action="{{ url_for('auth.logout') }}" class="inline">

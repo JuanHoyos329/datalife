@@ -3,30 +3,35 @@
 {% block content %}
 {% with titulo="Alertas activas", lead="Sobreocupación, familias que no caben, escasez de recursos y necesidades de prioridad alta. Se recalculan con cada registro.", extra_ver=('todas' if todas else None) %}{% include "_albsel.html" %}{% endwith %}
 
-<div class="kpis k3">
+<nav class="asum" aria-label="Alertas por albergue">
 {% for r in resumen %}
-  <a class="kpi" href="?a={{ r.albergue_id }}" style="text-decoration:none;color:inherit;{{ 'border-color:var(--navy)' if r.albergue_id == alb.albergue_id and not todas }}">
-    <div class="k">{{ r.nombre }}<span class="tag {{ 't-crit' if r.criticas else 't-warn' if r.atencion else 't-ok' }}">{{ 'Crítico' if r.criticas else 'Atención' if r.atencion else 'Estable' }}</span></div>
-    <div class="v num">{{ r.criticas }}<small>críticas · {{ r.atencion }} de atención</small></div>
-  </a>
+  <a class="{{ 'on' if r.albergue_id == alb.albergue_id and not todas }}" href="?a={{ r.albergue_id }}">{{ r.nombre }}
+    <span class="cnt num">{% if r.criticas %}<span class="c">{{ r.criticas }}</span>{% endif %}{% if r.atencion %}<span class="w">{{ r.atencion }}</span>{% endif %}{% if not r.criticas and not r.atencion %}<span class="o">0</span>{% endif %}</span></a>
 {% endfor %}
+</nav>
+
+<div class="segl" role="group" aria-label="Qué alertas ver">
+  <a class="{{ 'on' if not todas }}" href="?a={{ alb.albergue_id }}" {{ 'aria-current=true' if not todas }}>{{ alb.nombre }}</a>
+  <a class="{{ 'on' if todas }}" href="?ver=todas" {{ 'aria-current=true' if todas }}>Todos los albergues</a>
 </div>
 
-<div class="rowf" style="margin-bottom:14px">
-  <a class="btn btn-sm {{ 'btn-p' if not todas else 'btn-s' }}" href="?a={{ alb.albergue_id }}">Solo {{ alb.nombre }}</a>
-  <a class="btn btn-sm {{ 'btn-p' if todas else 'btn-s' }}" href="?ver=todas">Todos los albergues</a>
-</div>
-
-<div class="alerts">
-{% for a in filas %}
-  <div class="alert {{ 'a-crit' if a.nivel == 'critica' else 'a-warn' }}" {{ 'role=alert' if a.nivel == 'critica' }}>
-    <span class="ai">{{ ic('crit' if a.nivel == 'critica' else 'alert', 22) }}</span>
-    <div><div class="at"><span class="tag {{ 't-crit' if a.nivel == 'critica' else 't-warn' }}">{{ 'Crítica' if a.nivel == 'critica' else 'Atención' }}</span>{{ a.titulo }}{% if todas %} <span class="tag t-neu">{{ a.albergue }}</span>{% endif %}</div>
-    <p>{{ a.detalle }}</p></div>
+{% set crit = filas|selectattr('nivel', 'equalto', 'critica')|list %}
+{% set aten = filas|rejectattr('nivel', 'equalto', 'critica')|list %}
+{% if filas %}
+<div class="alist">
+  {% for grupo, lista, cls, icono in [('Críticas', crit, 'c', 'crit'), ('De atención', aten, 'w', 'alert')] if lista %}
+  <h4>{{ grupo }} <span class="tag {{ 't-crit' if cls == 'c' else 't-warn' }} num">{{ lista|length }}</span></h4>
+  {% for a in lista %}
+  <div class="ai-row {{ cls }}" {{ 'role=alert' if cls == 'c' }}>
+    <span class="dot">{{ ic(icono, 16) }}</span>
+    <div><b>{{ a.titulo }}</b><small>{{ a.detalle }}</small></div>
+    {% if todas %}<span class="where">{{ a.albergue }}</span>{% endif %}
   </div>
+  {% endfor %}
+  {% endfor %}
+</div>
 {% else %}
   <div class="banner b-ok">{{ ic('ok') }}<div><b>Sin alertas activas</b>Ocupación e inventario dentro de los rangos esperados.</div></div>
-{% endfor %}
-</div>
+{% endif %}
 <p class="note" style="margin-top:18px">Reglas: ocupación ≥ 100 % crítica y ≥ 90 % atención · recurso con menos de 2 días crítico y menos de 4 días atención · familia en espera que no cabe: crítica · necesidad alta sin atender: atención.</p>
 {% endblock %}

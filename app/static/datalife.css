@@ -2,17 +2,20 @@
    DataLife · sistema visual "Noche"
    Negro por defecto, tema claro opcional (html[data-theme="light"]).
    Acento: naranja de seguridad (cálido, visible, amable). Estados: rojo,
-   ámbar y verde menta. Tipografía: Plus Jakarta Sans (OFL, local).
+   ámbar y verde menta. Tipografía: Sora (títulos y cifras) + DM Sans (texto), OFL, locales.
    Todo color de la interfaz sale de estas variables.
    ===================================================================== */
-@font-face{font-family:'Jakarta';font-style:normal;font-weight:400;font-display:swap;src:url(/static/fonts/plus-jakarta-sans-latin-400-normal.woff2) format('woff2')}
-@font-face{font-family:'Jakarta';font-style:normal;font-weight:500;font-display:swap;src:url(/static/fonts/plus-jakarta-sans-latin-500-normal.woff2) format('woff2')}
-@font-face{font-family:'Jakarta';font-style:normal;font-weight:600;font-display:swap;src:url(/static/fonts/plus-jakarta-sans-latin-600-normal.woff2) format('woff2')}
-@font-face{font-family:'Jakarta';font-style:normal;font-weight:700;font-display:swap;src:url(/static/fonts/plus-jakarta-sans-latin-700-normal.woff2) format('woff2')}
-@font-face{font-family:'Jakarta';font-style:normal;font-weight:800;font-display:swap;src:url(/static/fonts/plus-jakarta-sans-latin-800-normal.woff2) format('woff2')}
+
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:400;font-display:swap;src:url(/static/fonts/dm-sans-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:500;font-display:swap;src:url(/static/fonts/dm-sans-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:600;font-display:swap;src:url(/static/fonts/dm-sans-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:700;font-display:swap;src:url(/static/fonts/dm-sans-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Sora';font-style:normal;font-weight:600;font-display:swap;src:url(/static/fonts/sora-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Sora';font-style:normal;font-weight:700;font-display:swap;src:url(/static/fonts/sora-latin-700-normal.woff2) format('woff2')}
 
 :root{
-  --font:'Jakarta',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-d:'Sora','DM Sans',system-ui,sans-serif;
   /* superficies */
   --bg:#050506;--bg2:#0A0A0C;--surface:#111114;--surface2:#17171B;--hover:#1C1C21;--chip:#1E1E24;
   --line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.16);
@@ -287,7 +290,7 @@ button.tr.on{background:var(--navy-soft);box-shadow:inset 3px 0 0 var(--navy)}
 .sign div{border-top:1.5px solid var(--ink);padding-top:6px;font-size:13px;color:var(--ink2)}
 .obs-print{display:none;white-space:pre-wrap;font-size:15px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:60px}
 .carne-print{display:none}
-.carne{width:86mm;border:1.5px solid #14365C;border-radius:10px;padding:10px 12px;font-family:'Public Sans',system-ui,sans-serif;color:#16191D;background:#fff}
+.carne{width:86mm;border:1.5px solid #14365C;border-radius:10px;padding:10px 12px;font-family:var(--font);color:#16191D;background:#fff}
 .carne .ch{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #DCDFDA;padding-bottom:6px;margin-bottom:8px;font-size:11px}
 .carne .ch b{font-size:14px;color:#14365C}
 .carne .cb{display:flex;gap:10px;align-items:center}
@@ -680,3 +683,47 @@ html[data-theme="light"] .auth-hero h2 em{background:linear-gradient(100deg,#9A3
 .side{border-right:0}
 html[data-theme="light"] .field,html[data-theme="light"] .rolepick label,html[data-theme="light"] .pick,html[data-theme="light"] .pb,html[data-theme="light"] .chk{background:var(--surface)}
 @media (max-width:1023px){.shell{background:var(--bg)}}
+
+/* ===== Tipografía: Sora para títulos y cifras, DM Sans para el texto ===== */
+.h2,.brand h1,.card h3,.sec h3,.kpi .v,.auth-hero h2,.auth-card h3,.modal h3,.clock,.code-big,.flow b,.cap .big,.mini b,.pcount b,.shcard .shh b{font-family:var(--font-d)}
+.h2{letter-spacing:-.025em;font-weight:700}
+.kpi .v{letter-spacing:-.03em;font-weight:700}
+.auth-hero h2{letter-spacing:-.035em;font-weight:700}
+.card h3,.sec h3,.auth-card h3{font-weight:700;letter-spacing:-.015em}
+.brand h1{font-weight:700;letter-spacing:-.02em;font-size:20px}
+.brand h1 span{color:var(--navy)}
+.navlink,.btn{letter-spacing:-.005em}
+
+/* ===== Logo ===== */
+.mark{border-radius:11px;background:linear-gradient(145deg,#FFB07A,#F26A2E);color:#140A04}
+html[data-theme="light"] .mark{background:linear-gradient(145deg,#F28A4E,#C2410C);color:#fff}
+
+/* ===== Alertas compactas ===== */
+.asum{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 18px}
+.asum a{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);text-decoration:none;font-weight:600;font-size:14px;transition:border-color var(--t-fast) ease,background-color var(--t-fast) ease}
+.asum a.on{border-color:var(--navy);background:var(--navy-soft)}
+.asum .cnt{display:inline-flex;gap:6px;font-size:12.5px;font-weight:700}
+.asum .cnt span{display:inline-flex;align-items:center;gap:4px;color:var(--muted)}
+.asum .cnt span::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.asum .cnt .c{color:var(--crit)}.asum .cnt .w{color:var(--warn)}.asum .cnt .o{color:var(--ok)}
+@media (hover:hover) and (pointer:fine){.asum a:not(.on):hover{background:var(--hover);border-color:var(--line2)}}
+.segl{display:inline-flex;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px;margin:0 0 14px}
+.segl a{display:inline-flex;align-items:center;min-height:38px;padding:0 14px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);text-decoration:none}
+.segl a.on{background:var(--surface2);color:var(--ink);box-shadow:var(--shadow-1)}
+.alist{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-1)}
+.alist h4{margin:0;padding:12px 16px 8px;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.alist h4+.ai-row{border-top:0}
+.alist h4:not(:first-child){border-top:1px solid var(--line);margin-top:4px;padding-top:14px}
+.ai-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}
+.ai-row .dot{width:28px;height:28px;border-radius:8px;display:grid;place-items:center}
+.ai-row.c .dot{background:var(--crit-bg);color:var(--crit)}
+.ai-row.w .dot{background:var(--warn-bg);color:var(--warn)}
+.ai-row b{display:block;font-size:14.5px;font-weight:600;line-height:1.35}
+.ai-row small{display:block;font-size:13px;color:var(--muted);line-height:1.4;margin-top:1px}
+.ai-row .where{font-size:12px;font-weight:600;color:var(--ink2);background:var(--chip);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.alert{padding:12px 14px;gap:12px;border-radius:var(--r-md)}
+.alert .at{font-size:14.5px;font-weight:600;gap:6px}
+.alert p{font-size:13px;margin-top:2px}
+.alert .ai .ic{width:18px;height:18px}
+@media (max-width:640px){.ai-row{grid-template-columns:auto minmax(0,1fr)}.ai-row .where{grid-column:2;justify-self:start}}
