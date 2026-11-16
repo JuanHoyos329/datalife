@@ -110,6 +110,28 @@ function instalarActivador_() {
 }
 
 /**
+ * ETL cada 15 minutos SIN GitHub Actions (gratis, corre en Google).
+ * Ejecútala una vez a mano después de configurar las propiedades del script.
+ * Sirve también para que Render no se duerma y Supabase no se pause.
+ */
+function instalarEtlCada15Min() {
+  var ya = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'etlProgramado'; });
+  if (!ya) ScriptApp.newTrigger('etlProgramado').timeBased().everyMinutes(15).create();
+  Logger.log('Listo: el ETL se pedirá cada 15 minutos.');
+}
+
+function quitarEtlCada15Min() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'etlProgramado') ScriptApp.deleteTrigger(t);
+  });
+  Logger.log('ETL programado desactivado.');
+}
+
+function etlProgramado() {
+  alEnviarFormulario(null);
+}
+
+/**
  * Se ejecuta en cada respuesta nueva. Avisa a la app para que corra el ETL.
  * Configura en Apps Script → Configuración del proyecto → Propiedades del script:
  *   DATALIFE_WEBHOOK_URL   = https://TU-APP.onrender.com/api/etl/ejecutar
