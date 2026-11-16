@@ -1,11 +1,6 @@
-# Blueprint de Render: crea la base PostgreSQL y el servicio web Docker desde este repositorio.
-# Render → New → Blueprint → elige el repositorio → Apply.
-databases:
-  - name: datalife-db
-    plan: free
-    databaseName: datalife
-    user: datalife
-
+# Blueprint de Render: publica la app (Docker) desde este repositorio.
+# La base de datos es Supabase: Render NO crea otra base.
+# Render → New → Blueprint → elige JuanHoyos329/datalife → Apply.
 services:
   - type: web
     name: datalife
@@ -15,21 +10,21 @@ services:
     autoDeploy: true
     healthCheckPath: /salud
     envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: datalife-db
-          property: connectionString
+      - key: DATABASE_URL          # Supabase → Connect → Session pooler (puerto 5432)
+        sync: false
       - key: SECRET_KEY
         generateValue: true
       - key: ETL_WEBHOOK_TOKEN
         generateValue: true
       - key: FLASK_ENV
         value: production
-      - key: SEED_DEMO
+      - key: SEED_DEMO             # 1 = usuarios y datos de demostración. Con datos reales: 0
         value: "1"
       - key: DEMO_PASSWORD
         sync: false
       - key: GOOGLE_SHEET_ID
-        sync: false
+        value: 14VCjl8W0LKFl_RvQExjv55aru74mtR81U1FOwQUqIFw
       - key: GOOGLE_SERVICE_ACCOUNT_JSON
         sync: false
+      - key: WEB_CONCURRENCY
+        value: "1"

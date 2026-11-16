@@ -4,7 +4,7 @@ De prototipo HTML a una aplicación web de verdad:
 
 ```
 Google Form ──► Google Sheets ──► ETL en Python ──► PostgreSQL ──► App web (Flask) ──► URL pública
- (registro)      (respuestas)     (limpia y valida)   (db/schema.sql)  (roles)         (Docker + Render)
+ (registro)      (respuestas)     (limpia y valida)   (db/schema.sql)  (roles)         (Supabase + Render)
 ```
 
 | Parte | Archivo |
@@ -117,30 +117,66 @@ Pruebas: `TEST_DATABASE_URL=postgresql://postgres@localhost:5432/datalife_test p
 
 ---
 
-## 5. Publicar con URL desde GitHub (recomendado: Render)
+## 5. Base de datos en Supabase (ya está creada)
 
-**Por qué Render**: despliega el `Dockerfile` directo desde GitHub, da HTTPS y una URL `https://datalife-xxxx.onrender.com`,
-crea el PostgreSQL desde el mismo `render.yaml` y tiene plan gratuito. Railway o Fly.io sirven igual con el mismo Dockerfile.
+El proyecto de Supabase **JuanHoyos329's Project** (`abqdtjxghgnlbidexdhp`) ya tiene las 14 tablas, las 3 vistas
+de indicadores, los roles, los recursos y los 3 albergues con su inventario inicial (migración `datalife_schema`,
+el mismo contenido de `db/schema.sql`). Todas las tablas tienen **RLS activo sin políticas**: la API pública de Supabase
+no puede leer nada; la app y el ETL entran como dueños de las tablas y no les afecta.
 
-1. Crea un repositorio en GitHub (p. ej. `datalife`) y sube esta carpeta:
-   ```bash
-   git init && git add . && git commit -m "DataLife: despliegue con Docker"
-   git branch -M main
-   git remote add origin https://github.com/TU_USUARIO/datalife.git
-   git push -u origin main
-   ```
-2. En <https://render.com> entra con GitHub → **New → Blueprint** → elige el repo → **Apply**. Render crea `datalife-db` y el servicio `datalife`.
-3. En el servicio → **Environment**, llena `DEMO_PASSWORD`, `GOOGLE_SHEET_ID` y `GOOGLE_SERVICE_ACCOUNT_JSON`.
-4. En unos minutos tienes la URL pública. Cada `git push` a `main` vuelve a desplegar.
-5. En GitHub → **Settings → Secrets and variables → Actions** agrega `DATABASE_URL` (la *External Database URL* de Render),
-   `GOOGLE_SHEET_ID` y `GOOGLE_SERVICE_ACCOUNT_JSON` para el ETL cada 15 min. Opcional: `RENDER_DEPLOY_HOOK_URL`.
+La URL de conexión que usan la app y el ETL (`DATABASE_URL`) se copia en Supabase → **Connect → Connection string →
+Session pooler**. Cópiala tal cual de Supabase; se ve así (con tu contraseña en lugar de `[TU-CLAVE]`):
 
-`ci.yml` corre en cada push: **pruebas** contra un PostgreSQL de GitHub → **imagen Docker** publicada en
-`ghcr.io/TU_USUARIO/datalife` → aviso de **despliegue** a Render.
+```
+postgresql://postgres.abqdtjxghgnlbidexdhp:[TU-CLAVE]@aws-X-us-east-1.pooler.supabase.com:5432/postgres
+```
 
-**Plan gratuito de Render**: el servicio se duerme tras 15 min sin visitas (la primera carga tarda cerca de un minuto) y la base
-gratuita vence a los 30 días. Para la presentación sirve; para operar de verdad usa un plan pagado o una base en **Neon**
-(neon.tech, gratis y no vence): pon su URL en `DATABASE_URL`.
+Usa el *Session pooler* (no la *Direct connection*, que es solo IPv6 y Render y GitHub no siempre llegan a ella).
+Si olvidaste la contraseña: Supabase → Project Settings → Database → Reset database password.
+
+---
+
+## 6. Publicar con URL desde GitHub (Render)
+
+La página es un servidor Python, así que no puede ir en GitHub Pages (solo sirve HTML estático). Se publica en **Render**,
+conectado a este repositorio: cada `git push` a `main` vuelve a desplegar solo.
+
+1. Abre <https://render.com/deploy?repo=https://github.com/JuanHoyos329/datalife> y entra con tu cuenta de GitHub.
+2. Render lee `render.yaml` y te pide 3 valores:
+   - `DATABASE_URL`: la URL del *Session pooler* de Supabase (sección 5).
+   - `DEMO_PASSWORD`: la clave de los usuarios de prueba (p. ej. `datalife2026`).
+   - `GOOGLE_SERVICE_ACCOUNT_JSON`: el contenido completo del `.json` de tu cuenta de servicio (puedes dejarlo vacío y llenarlo después).
+3. Pulsa **Apply**. En 3 a 5 minutos la página queda en **https://datalife.onrender.com**
+   (si ese nombre ya está tomado, Render agrega unas letras: la URL exacta aparece arriba a la izquierda del servicio).
+4. Primera vez: la app detecta que las tablas ya existen en Supabase y solo carga los usuarios y datos de demostración.
+
+**GitHub Actions** (pestaña *Actions* del repo):
+- `CI / CD`: en cada push corre las 15 pruebas, publica la imagen Docker en `ghcr.io/juanhoyos329/datalife` y avisa a Render.
+- `ETL Google Sheets a base de datos`: cada 15 minutos pasa las respuestas del formulario a Supabase.
+  Secretos que necesita (*Settings → Secrets and variables → Actions*): `DATABASE_URL`, `GOOGLE_SHEET_ID`
+  (`14VCjl8W0LKFl_RvQExjv55aru74mtR81U1FOwQUqIFw`) y `GOOGLE_SERVICE_ACCOUNT_JSON`.
+- `Encender / apagar DataLife`: el botón de la sección 7.
+
+---
+
+## 7. Encender y apagar el sistema
+
+| Qué | Encender | Apagar |
+|---|---|---|
+| **Todo, con un botón** | GitHub → *Actions* → **Encender / apagar DataLife** → *Run workflow* → `encender` | lo mismo con `apagar` |
+| Página web (Render) | Render → servicio `datalife` → **Resume Service** | Render → servicio `datalife` → **Suspend Service** |
+| ETL automático | GitHub → *Actions* → *ETL Google Sheets…* → **Enable workflow** | **Disable workflow** |
+| Base de datos (Supabase) | Supabase → proyecto → **Restore project** | Project Settings → General → **Pause project** |
+| En tu computador | `docker compose up -d` | `docker compose down` (los datos quedan en el volumen) |
+
+El botón de GitHub suspende o reanuda la página en Render y pausa o activa el ETL. Para que funcione, agrega dos secretos:
+- `RENDER_API_KEY`: Render → *Account Settings → API Keys → Create API Key*.
+- `RENDER_SERVICE_ID`: el código `srv-…` que aparece en la URL del servicio en Render.
+
+La base de Supabase no hace falta apagarla: el plan gratis no cobra por estar encendida. Si nadie la usa en 7 días, Supabase la
+pausa sola; se reactiva con *Restore project*. Apagada la página, la URL muestra un aviso de Render; al encenderla tarda
+1 a 3 minutos en responder. En el plan gratis, además, la página se duerme sola tras 15 minutos sin visitas y despierta con
+la primera visita (unos 50 segundos).
 
 ### Antes de cargar datos reales
 - `SEED_DEMO=0`; crea tus usuarios con `flask --app app crear-usuario juan fundador` (o desde *Datos y usuarios*) y desactiva los de demo.
@@ -157,6 +193,7 @@ app/            Flask: auth.py (login, roles, CSRF), albergues.py, simulacros.py
   templates/    Plantillas con el diseño del prototipo (static/datalife.css es el mismo CSS)
 core/db.py      Conexión compartida por la app y el ETL
 db/schema.sql   Tablas, roles, recursos y vistas de indicadores y alertas
+supabase/       Migración aplicada en Supabase (schema + albergues e inventario inicial)
 etl/            ETL y archivo de ejemplo
 google/         Apps Script del formulario
 tests/          Pruebas con PostgreSQL real

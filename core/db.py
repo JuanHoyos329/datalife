@@ -16,13 +16,19 @@ def database_url() -> str:
         url = "postgresql://" + url[len("postgres://"):]
     if url.startswith("postgresql://"):
         url = "postgresql+psycopg://" + url[len("postgresql://"):]
+    # Supabase exige SSL
+    if "supabase." in url and "sslmode=" not in url:
+        url += ("&" if "?" in url else "?") + "sslmode=require"
     return url
 
 
 def get_engine() -> Engine:
     global _engine
     if _engine is None:
-        _engine = create_engine(database_url(), pool_pre_ping=True, future=True)
+        # prepare_threshold=None: sin sentencias preparadas, compatible con el pooler de Supabase
+        # (Supavisor en modo transacción, puerto 6543) y con una conexión directa normal.
+        _engine = create_engine(database_url(), pool_pre_ping=True, pool_size=3, max_overflow=2,
+                                pool_recycle=300, connect_args={"prepare_threshold": None})
     return _engine
 
 

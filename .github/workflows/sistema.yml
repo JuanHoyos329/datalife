@@ -1,0 +1,58 @@
+# Encender o apagar DataLife con un botón:
+# GitHub → Actions → "Encender / apagar DataLife" → Run workflow → elige la acción.
+#   apagar   = suspende la página en Render (deja de responder) y pausa el ETL programado
+#   encender = reanuda la página en Render y vuelve a activar el ETL
+#   estado   = solo muestra si está encendido o apagado
+# Necesita los secretos RENDER_API_KEY y RENDER_SERVICE_ID (ver README).
+name: Encender / apagar DataLife
+
+on:
+  workflow_dispatch:
+    inputs:
+      accion:
+        description: "¿Qué hacer?"
+        type: choice
+        options: [estado, encender, apagar]
+        default: estado
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  sistema:
+    runs-on: ubuntu-latest
+    env:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      SERVICE: ${{ secrets.RENDER_SERVICE_ID }}
+      GH_TOKEN: ${{ github.token }}
+      ACCION: ${{ inputs.accion }}
+    steps:
+      - name: Revisar secretos
+        run: |
+          if [ -z "$RENDER_API_KEY" ] || [ -z "$SERVICE" ]; then
+            echo "::error::Faltan los secretos RENDER_API_KEY y RENDER_SERVICE_ID (README, sección Encender y apagar)."
+            exit 1
+          fi
+
+      - name: Página web (Render)
+        run: |
+          api="https://api.render.com/v1/services/$SERVICE"
+          auth="Authorization: Bearer $RENDER_API_KEY"
+          case "$ACCION" in
+            apagar)   curl -fsS -X POST -H "$auth" "$api/suspend" && echo "Página suspendida." ;;
+            encender) curl -fsS -X POST -H "$auth" "$api/resume"  && echo "Página reanudada: tarda 1 a 3 minutos en responder." ;;
+          esac
+          info=$(curl -fsS -H "$auth" "$api")
+          echo "Estado en Render: $(echo "$info" | jq -r '.suspended')  ·  URL: $(echo "$info" | jq -r '.serviceDetails.url')"
+          echo "### DataLife: $ACCION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Render: \`$(echo "$info" | jq -r '.suspended')\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- URL: $(echo "$info" | jq -r '.serviceDetails.url')" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: ETL programado (GitHub Actions)
+        run: |
+          case "$ACCION" in
+            apagar)   gh workflow disable etl.yml -R "$GITHUB_REPOSITORY" && echo "ETL pausado." ;;
+            encender) gh workflow enable  etl.yml -R "$GITHUB_REPOSITORY" && echo "ETL activado." ;;
+          esac
+          gh workflow list -R "$GITHUB_REPOSITORY" | tee -a "$GITHUB_STEP_SUMMARY"

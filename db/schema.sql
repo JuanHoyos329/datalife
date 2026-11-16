@@ -282,4 +282,22 @@ JOIN familias f ON f.id = n.familia_id
 JOIN recursos r ON r.codigo = n.recurso
 WHERE n.estado = 'pendiente' AND n.prioridad = 'alta' AND f.estado <> 'salida';
 
+-- ---------------------------------------------------------------------
+-- 7. Seguridad para Supabase: activa RLS en todas las tablas.
+--    Supabase publica el esquema "public" por su API REST; con RLS activo y sin
+--    políticas, nadie puede leer los datos con la clave anónima. La app y el ETL
+--    se conectan como dueños de las tablas, así que no les afecta.
+--    En un PostgreSQL normal (Docker, Render, Neon) no cambia nada.
+-- ---------------------------------------------------------------------
+DO $$
+DECLARE t record;
+BEGIN
+    FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+        EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t.tablename);
+    END LOOP;
+END $$;
+ALTER VIEW v_ocupacion       SET (security_invoker = true);
+ALTER VIEW v_inventario_dias SET (security_invoker = true);
+ALTER VIEW v_alertas         SET (security_invoker = true);
+
 COMMIT;
