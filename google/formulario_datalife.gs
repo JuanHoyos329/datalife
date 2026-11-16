@@ -9,9 +9,12 @@
  *   1. Crea el Google Form con todas las preguntas del censo.
  *   2. Lo conecta a ESTA hoja: cada respuesta llega como una fila nueva
  *      en la pestaña "Respuestas de formulario 1".
- *   3. Instala un activador "al enviar el formulario" que avisa a la app
- *      de DataLife para que corra el ETL al instante (opcional: solo si
- *      configuras DATALIFE_WEBHOOK_URL y DATALIFE_WEBHOOK_TOKEN).
+ *   3. Instala un activador "al enviar el formulario" que ENVÍA la hoja
+ *      completa a DataLife y la app corre el ETL al instante. No necesita
+ *      cuenta de servicio de Google: solo DATALIFE_WEBHOOK_URL y
+ *      DATALIFE_WEBHOOK_TOKEN en Propiedades del script.
+ *   4. Agrega el menú "DataLife" a la hoja: enviar ahora, cargar
+ *      respuestas de prueba y ver el estado de la conexión.
  *
  * IMPORTANTE: el ETL de Python lee las columnas por el TÍTULO de cada
  * pregunta. Si cambias un título aquí, cámbialo también en
@@ -131,27 +134,129 @@ function etlProgramado() {
   alEnviarFormulario(null);
 }
 
+/** Menú "DataLife" en la hoja de cálculo. */
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('DataLife')
+    .addItem('Enviar respuestas a DataLife ahora', 'enviarAhora')
+    .addItem('Agregar 10 respuestas de prueba', 'enviarRespuestasDePrueba')
+    .addSeparator()
+    .addItem('Probar conexión con DataLife', 'probarConexion')
+    .addToUi();
+}
+
+/** Busca la pestaña de respuestas (la que tiene la columna "Nombre completo"). */
+function hojaRespuestas_() {
+  var libro = SpreadsheetApp.getActiveSpreadsheet();
+  var hojas = libro.getSheets();
+  for (var i = 0; i < hojas.length; i++) {
+    var h = hojas[i];
+    if (h.getLastRow() >= 1 && h.getRange(1, 1, 1, h.getLastColumn()).getDisplayValues()[0].indexOf('Nombre completo') >= 0) return h;
+  }
+  return null;
+}
+
 /**
- * Se ejecuta en cada respuesta nueva. Avisa a la app para que corra el ETL.
- * Configura en Apps Script → Configuración del proyecto → Propiedades del script:
- *   DATALIFE_WEBHOOK_URL   = https://TU-APP.onrender.com/api/etl/ejecutar
- *   DATALIFE_WEBHOOK_TOKEN = el mismo valor de ETL_WEBHOOK_TOKEN en la app
- * Si no están configuradas, no pasa nada: el ETL programado (GitHub Actions)
- * recogerá la respuesta en la siguiente ejecución.
+ * Envía TODA la pestaña de respuestas a DataLife (POST /api/etl/ejecutar).
+ * El ETL es idempotente: las personas ya cargadas se actualizan, no se duplican.
+ * Devuelve el texto de la respuesta de la app.
  */
-function alEnviarFormulario(e) {
+function enviarHoja_() {
   var props = PropertiesService.getScriptProperties();
   var url = props.getProperty('DATALIFE_WEBHOOK_URL');
   var token = props.getProperty('DATALIFE_WEBHOOK_TOKEN');
-  if (!url || !token) return;
+  if (!url || !token) throw new Error('Faltan DATALIFE_WEBHOOK_URL y DATALIFE_WEBHOOK_TOKEN en Propiedades del script.');
+  var hoja = hojaRespuestas_();
+  if (!hoja) throw new Error('No encontré la pestaña de respuestas. Ejecuta primero crearFormularioDataLife.');
+  var valores = hoja.getDataRange().getDisplayValues();   // fechas tal como se ven: dd/mm/aaaa
+  var r = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'X-DataLife-Token': token },
+    payload: JSON.stringify({ origen: 'google_forms', hoja: hoja.getName(), valores: valores }),
+    muteHttpExceptions: true
+  });
+  return r.getResponseCode() + ' ' + r.getContentText();
+}
+
+/** Menú → "Enviar respuestas a DataLife ahora". */
+function enviarAhora() {
+  var msg;
+  try { msg = enviarHoja_(); } catch (err) { msg = 'Error: ' + err.message; }
+  Logger.log(msg);
+  try { SpreadsheetApp.getUi().alert('DataLife', msg, SpreadsheetApp.getUi().ButtonSet.OK); } catch (e) { /* sin interfaz */ }
+}
+
+/** Menú → "Probar conexión con DataLife": llama /salud. */
+function probarConexion() {
+  var url = PropertiesService.getScriptProperties().getProperty('DATALIFE_WEBHOOK_URL') || '';
+  var base = url.replace(/\/api\/etl\/ejecutar\/?$/, '');
+  var msg = base ? UrlFetchApp.fetch(base + '/salud', { muteHttpExceptions: true }).getContentText()
+                 : 'Falta DATALIFE_WEBHOOK_URL en Propiedades del script.';
+  Logger.log(msg);
+  try { SpreadsheetApp.getUi().alert('DataLife', msg, SpreadsheetApp.getUi().ButtonSet.OK); } catch (e) { /* sin interfaz */ }
+}
+
+/**
+ * Llena el formulario 10 veces con personas FICTICIAS (como si fueran
+ * personas reales respondiendo). Sirve para probar todo el camino:
+ * Form → Hoja → DataLife. Los documentos empiezan por 99 para reconocerlos.
+ */
+function enviarRespuestasDePrueba() {
+  var formId = PropertiesService.getScriptProperties().getProperty('FORM_ID');
+  if (!formId) throw new Error('Primero ejecuta crearFormularioDataLife.');
+  var form = FormApp.openById(formId);
+  var items = {};
+  form.getItems().forEach(function (it) { items[it.getTitle()] = it; });
+
+  var nombres = ['Ana Lucía Mosquera', 'Luis Fernando Arboleda', 'Sandra Milena Valencia', 'Jhon Jairo Caicedo',
+                 'María José Riascos', 'Andrés Felipe Rengifo', 'Luz Dary Hurtado', 'Óscar Iván Quiñones',
+                 'Paula Andrea Lozano', 'Wilmer Angulo Rivas'];
+  var hoy = new Date();
+  for (var i = 0; i < nombres.length; i++) {
+    var albergada = i % 3 === 0;
+    var resp = form.createResponse();
+    var texto = function (t, v) { if (items[t] && v !== '') resp.withItemResponse(items[t].asTextItem().createResponse(String(v))); };
+    var lista = function (t, v) { if (items[t]) resp.withItemResponse(items[t].asListItem().createResponse(v)); };
+    var opcion = function (t, v) { if (items[t]) resp.withItemResponse(items[t].asMultipleChoiceItem().createResponse(v)); };
+    texto('Nombre completo', nombres[i]);
+    lista('Tipo de documento', 'Cédula de ciudadanía');
+    texto('Número de documento', '99' + String(10000000 + Math.floor(Math.random() * 89999999)));
+    if (items['Fecha de nacimiento']) {
+      resp.withItemResponse(items['Fecha de nacimiento'].asDateItem().createResponse(new Date(1950 + i * 6, i, 10 + i)));
+    }
+    opcion('Tipo de persona', albergada ? 'Persona albergada' : (i % 3 === 1 ? 'Residente' : 'Trabajador'));
+    opcion('Grupo de atención prioritaria', OPCIONES.grupo[i % OPCIONES.grupo.length]);
+    lista('Torre o área', OPCIONES.torre[i % 3]);
+    texto('Apartamento o cargo', albergada ? '' : String(101 + i * 10));
+    opcion('Punto de encuentro asignado', OPCIONES.punto[i % 2]);
+    lista('Albergue', albergada ? OPCIONES.albergue[1 + (i % 3)] : 'No aplica');
+    texto('Integrantes del grupo familiar', albergada ? String(2 + (i % 4)) : '');
+    if (items['Condiciones médicas o necesidades especiales'] && i % 4 === 0) {
+      resp.withItemResponse(items['Condiciones médicas o necesidades especiales'].asParagraphTextItem().createResponse('Hipertensión'));
+    }
+    texto('Contacto de emergencia (nombre)', 'Familiar de ' + nombres[i].split(' ')[0]);
+    texto('Celular del contacto de emergencia', '31' + String(10000000 + Math.floor(Math.random() * 89999999)));
+    var aut = items['Autorización de tratamiento de datos (Ley 1581 de 2012)'];
+    if (aut) resp.withItemResponse(aut.asCheckboxItem().createResponse(['Sí, autorizo el tratamiento de mis datos']));
+    resp.submit();
+  }
+  SpreadsheetApp.flush();
+  Logger.log('Listo: 10 respuestas de prueba enviadas (' + hoy.toLocaleString() + ').');
+  enviarAhora();
+}
+
+/**
+ * Se ejecuta en cada respuesta nueva: envía la hoja a DataLife y la app corre el ETL.
+ * Configura en Apps Script → Configuración del proyecto → Propiedades del script:
+ *   DATALIFE_WEBHOOK_URL   = https://TU-APP.onrender.com/api/etl/ejecutar
+ *   DATALIFE_WEBHOOK_TOKEN = el mismo valor de ETL_WEBHOOK_TOKEN en la app
+ * Si no están configuradas, no pasa nada (puedes subir el .csv desde la app).
+ */
+function alEnviarFormulario(e) {
+  var props = PropertiesService.getScriptProperties();
+  if (!props.getProperty('DATALIFE_WEBHOOK_URL') || !props.getProperty('DATALIFE_WEBHOOK_TOKEN')) return;
   try {
-    UrlFetchApp.fetch(url, {
-      method: 'post',
-      contentType: 'application/json',
-      headers: { 'X-DataLife-Token': token },
-      payload: JSON.stringify({ origen: 'google_forms', fila: e && e.range ? e.range.getRow() : null }),
-      muteHttpExceptions: true
-    });
+    Logger.log(enviarHoja_());
   } catch (err) {
     console.error('No se pudo avisar a DataLife: ' + err);
   }

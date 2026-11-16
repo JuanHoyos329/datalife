@@ -25,7 +25,7 @@
   </div>
   <div class="kpi">
     <div class="k">Flujo de hoy<span class="tag t-neu">Neto {{ flujo.entradas - flujo.salidas }}</span></div>
-    <div class="flow num"><div><b>{{ flujo.entradas }}</b><span>Ingresos</span></div><div style="color:#B7BCC2;font-size:24px">vs</div><div><b>{{ flujo.salidas }}</b><span>Salidas</span></div></div>
+    <div class="flow num"><div><b>{{ flujo.entradas }}</b><span>Ingresos</span></div><div style="color:var(--line2);font-size:24px">vs</div><div><b>{{ flujo.salidas }}</b><span>Salidas</span></div></div>
     <div class="f">Se reinicia a medianoche (hora de Colombia)</div>
   </div>
 </div>
@@ -85,7 +85,7 @@
 <div class="sec"><h3>Cupos en la ciudad</h3><small>Todos los albergues activos · toca uno para verlo</small></div>
 <div class="shgrid">
 {% for c in ciudad %}{% set lv = nivel_ocupacion(c.ocupacion) %}
-  <a class="card shcard" href="?a={{ c.albergue_id }}" {{ 'style=border-color:#14365C' if c.albergue_id == alb.albergue_id }}>
+  <a class="card shcard" href="?a={{ c.albergue_id }}" {{ 'style=border-color:var(--navy)' if c.albergue_id == alb.albergue_id }}>
     <span class="shh"><b>{{ c.nombre }}</b><span class="tag {{ 't-crit' if c.criticas else 't-warn' if lv=='warn' else 't-ok' }}">{{ 'Crítico' if c.criticas else 'Atención' if lv=='warn' else 'Estable' }}</span></span>
     <span><span class="cap"><span class="lbl" style="margin:0">Ocupación</span><span class="big num">{{ (c.ocupacion*100)|round|int }}%</span></span><span class="meter {{ lv }}" style="display:block"><i style="width: {{ [3, (c.ocupacion*100)|round(1)]|max }}%"></i></span></span>
     <span class="mini num"><span><b>{{ c.disponibles }}</b>cupos libres de {{ c.capacidad }}</span><span><b>{{ c.personas_en_espera }}</b>personas en espera</span></span>

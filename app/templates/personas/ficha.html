@@ -23,7 +23,7 @@
       <dd>{% if not p.contacto_nombre or not p.contacto_celular %}<span class="tag t-warn">Sin contacto completo</span>{% endif %}
         {% if mostrar %}{{ p.contacto_nombre or '' }} · <span class="num">{{ p.contacto_celular or '' }}</span>
         {% elif p.contacto_celular %}<span style="display:block;margin-bottom:6px">{{ p.contacto_nombre or '' }} · <span aria-label="Celular oculto">•••• ••• ••••</span></span>
-          <a class="btn btn-s btn-sm" href="?contacto=1">Mostrar contacto</a><small style="display:block;color:#5F656C;font-size:12.5px;margin-top:4px">Queda registrado en la bitácora (Ley 1581).</small>
+          <a class="btn btn-s btn-sm" href="?contacto=1">Mostrar contacto</a><small style="display:block;color:var(--muted);font-size:12.5px;margin-top:4px">Queda registrado en la bitácora (Ley 1581).</small>
         {% else %}{{ p.contacto_nombre or '' }}{% endif %}</dd>
       <dt>Datos personales</dt><dd>Autorizó el tratamiento (Ley 1581)</dd>
       <dt>Origen</dt><dd>{{ 'Google Forms' if p.fuente == 'google_forms' else 'Datos de demostración' if p.fuente == 'demo' else p.fuente }} · respondió {{ p.respondido_en|fecha }}</dd>

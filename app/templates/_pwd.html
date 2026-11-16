@@ -1,0 +1,10 @@
+<script>
+document.querySelectorAll('[data-ver]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var f = document.getElementById(b.dataset.ver), ver = f.type === 'password';
+    f.type = ver ? 'text' : 'password';
+    b.textContent = ver ? 'Ocultar' : 'Mostrar';
+    b.setAttribute('aria-pressed', ver);
+  });
+});
+</script>

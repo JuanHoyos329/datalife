@@ -131,3 +131,58 @@ def test_ficha_oculta_celular_hasta_mostrar(client):
 
 def test_salud(client):
     assert client.get("/salud").get_json()["estado"] == "ok"
+
+
+# ---------------- Crear cuenta y aprobación ----------------
+def test_crear_cuenta_queda_pendiente_y_coordinador_aprueba(app):
+    nuevo = app.test_client()
+    tok = csrf(nuevo, "/registro")
+    datos = {"nombre": "Laura Gómez Prueba", "usuario": "laura.g", "rol": "brigadista", "albergue": "",
+             "clave": "segura123", "clave2": "segura123", "csrf": tok}
+    r = nuevo.post("/registro", data=datos)
+    assert "Solicitud enviada" in r.get_data(as_text=True)
+    # Usuario repetido → error en el campo
+    r = nuevo.post("/registro", data=datos)
+    assert "ya existe" in r.get_data(as_text=True)
+    # Pendiente: la clave es correcta pero aún no puede entrar
+    tok = csrf(nuevo)
+    r = nuevo.post("/ingresar", data={"usuario": "laura.g", "clave": "segura123", "csrf": tok})
+    assert r.status_code == 200 and "en revisión" in r.get_data(as_text=True)
+
+    coord = app.test_client()
+    tok_c = login(coord, "coordinador")
+    html = coord.get("/admin/usuarios").get_data(as_text=True)
+    assert "Solicitudes de cuenta" in html and "laura.g" in html
+    uid = db("SELECT id FROM usuarios WHERE usuario = 'laura.g'")[0][0]
+    # Un coordinador no puede aprobarla como fundador
+    coord.post(f"/admin/usuarios/{uid}/solicitud", data={"accion": "aprobar", "rol": "fundador", "csrf": tok_c})
+    assert db("SELECT pendiente FROM usuarios WHERE id = :i", i=uid)[0][0] is True
+    coord.post(f"/admin/usuarios/{uid}/solicitud", data={"accion": "aprobar", "rol": "voluntario", "csrf": tok_c})
+    assert db("SELECT activo, pendiente, rol FROM usuarios WHERE id = :i", i=uid)[0] == (True, False, "voluntario")
+
+    tok = csrf(nuevo)
+    r = nuevo.post("/ingresar", data={"usuario": "laura.g", "clave": "segura123", "csrf": tok})
+    assert r.status_code == 302
+    assert nuevo.get("/albergues/cupos").status_code == 200
+    assert nuevo.get("/simulacros/").status_code == 403
+
+
+def test_registro_no_permite_roles_altos_ni_datos_malos(app):
+    c = app.test_client()
+    tok = csrf(c, "/registro")
+    r = c.post("/registro", data={"nombre": "X", "usuario": "Con Espacio", "rol": "fundador",
+                                  "clave": "corta", "clave2": "otra", "csrf": tok})
+    html = r.get_data(as_text=True)
+    assert "Revisa 4 campos" in html
+    assert not db("SELECT 1 FROM usuarios WHERE rol = 'fundador' AND usuario <> 'fundador'")
+
+
+def test_webhook_recibe_la_hoja_de_apps_script(client):
+    import csv
+    with EJEMPLO.open(encoding="utf-8-sig") as fh:
+        valores = list(csv.reader(fh))
+    r = client.post("/api/etl/ejecutar", json={"origen": "google_forms", "hoja": "Respuestas", "valores": valores},
+                    headers={"X-DataLife-Token": "tok-123"})
+    assert r.status_code == 200, r.get_data(as_text=True)
+    assert r.get_json()["estado"] == "ok"
+    assert db("SELECT fuente FROM etl_ejecuciones ORDER BY id DESC LIMIT 1")[0][0] == "apps_script:Respuestas"

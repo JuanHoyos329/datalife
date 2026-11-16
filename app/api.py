@@ -31,8 +31,14 @@ def webhook_etl():
     if not _lock.acquire(blocking=False):
         return jsonify(estado="ya hay un ETL en curso"), 202
     try:
-        from etl.etl_personas import ejecutar
-        r = ejecutar()
+        from etl.etl_personas import ejecutar, filas_desde_tabla
+        datos = request.get_json(silent=True) or {}
+        tabla = datos.get("valores")
+        if isinstance(tabla, list) and tabla and all(isinstance(f, list) for f in tabla):
+            # Apps Script envía la hoja completa: no hace falta cuenta de servicio de Google
+            r = ejecutar(filas=filas_desde_tabla(tabla), etiqueta=f"apps_script:{datos.get('hoja') or 'respuestas'}")
+        else:
+            r = ejecutar()
         return jsonify(estado="ok", insertadas=r["insertadas"], actualizadas=r["actualizadas"], rechazadas=r["rechazadas"])
     except SystemExit as e:
         return jsonify(error=str(e)), 400

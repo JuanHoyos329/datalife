@@ -1,29 +1,50 @@
 {% extends "base.html" %}
 {% block title %}Ingresar{% endblock %}
-{% block content %}
-<section>
-<h2 class="h2">Ingresar a DataLife</h2>
-<p class="lead">Cada rol ve solo lo que necesita. Fundador y Coordinador acceden a Simulacros y al censo; los demás roles ven Albergues.</p>
-<div class="login">
-  <form class="card" method="post">
-    {% include "_csrf.html" %}
-    <h3>Inicio de sesión</h3>
-    <p class="hint">Usuario y clave asignados por el coordinador.</p>
-    <div class="stack">
-      <div><label class="lbl" for="u">Usuario</label><input id="u" name="usuario" class="field" autocomplete="username" required autofocus></div>
-      <div><label class="lbl" for="c">Clave</label><input id="c" name="clave" type="password" class="field" autocomplete="current-password" required></div>
-      {% if error %}<div class="banner b-crit" role="alert">{{ ic('crit') }}<div><b>No se pudo ingresar</b>{{ error }}</div></div>{% endif %}
-      <button type="submit" class="btn btn-p">Ingresar</button>
+{% block shell %}
+<div class="auth">
+  {% include "_auth_side.html" %}
+  <main class="auth-main" id="contenido">
+    <div class="auth-card">
+      <nav class="switch" aria-label="Acceso">
+        <a class="on" href="{{ url_for('auth.login') }}" aria-current="page">Ingresar</a>
+        <a href="{{ url_for('auth.registro') }}">Crear cuenta</a>
+      </nav>
+      {% with msgs = get_flashed_messages(with_categories=true) %}{% for cat, m in msgs %}
+      <div class="banner {{ 'b-crit' if cat == 'error' else 'b-ok' }} mt" role="status">{{ ic('crit' if cat == 'error' else 'ok') }}<div>{{ m }}</div></div>
+      {% endfor %}{% endwith %}
+
+      {% if pendiente %}
+      <div class="done">
+        <h3>Tu cuenta está en revisión</h3>
+        <p class="sub">La clave es correcta, pero un Fundador o Coordinador todavía no aprueba la cuenta <b>{{ usuario }}</b>. Cuando la apruebe, podrás ingresar con la misma clave.</p>
+        <a class="btn btn-s" href="{{ url_for('auth.login') }}">Volver</a>
+      </div>
+      {% else %}
+      <h3>Bienvenido de nuevo</h3>
+      <p class="sub">Ingresa con el usuario y la clave de tu cuenta.</p>
+      <form method="post" class="stack" novalidate>
+        {% include "_csrf.html" %}
+        <div>
+          <label class="lbl" for="u">Usuario</label>
+          <input id="u" name="usuario" class="field" value="{{ usuario or '' }}" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+        </div>
+        <div>
+          <label class="lbl" for="c">Clave</label>
+          <div class="pwd">
+            <input id="c" name="clave" type="password" class="field" autocomplete="current-password" required {{ 'aria-invalid=true aria-describedby=err' if error }}>
+            <button type="button" data-ver="c" aria-controls="c">Mostrar</button>
+          </div>
+        </div>
+        {% if error %}<div class="banner b-crit" role="alert" id="err">{{ ic('crit') }}<div><b>No se pudo ingresar</b>{{ error }}</div></div>{% endif %}
+        <button type="submit" class="btn btn-p">Ingresar {{ ic('arrow', 20) }}</button>
+      </form>
+      <p class="note mt">¿No tienes cuenta? <a href="{{ url_for('auth.registro') }}">Crea una</a>: un coordinador la aprueba y te asigna el albergue.</p>
+      {% if modo_demo %}
+      <div class="demo"><b>Modo demostración.</b> Usuarios de prueba: <code>fundador</code> <code>coordinador</code> <code>voluntario</code> <code>brigada</code>, con la clave de demostración configurada en el servidor.</div>
+      {% endif %}
+      {% endif %}
     </div>
-  </form>
-  <div class="card">
-    <h3>¿Qué ve cada rol?</h3>
-    <div class="list">
-      <div class="row"><div class="l"><b>Fundador</b><small>Todo: albergues, censo, simulacros, ETL y usuarios.</small></div><span class="tag t-nav">Nivel 1</span></div>
-      <div class="row"><div class="l"><b>Coordinador</b><small>Todo lo anterior; no puede crear fundadores.</small></div><span class="tag t-nav">Nivel 2</span></div>
-      <div class="row"><div class="l"><b>Voluntario / Brigadista</b><small>Solo Albergues: cupos, recursos y alertas.</small></div><span class="tag t-neu">Nivel 3</span></div>
-    </div>
-  </div>
+  </main>
 </div>
-</section>
 {% endblock %}
+{% block scripts %}{% include "_pwd.html" %}{% endblock %}

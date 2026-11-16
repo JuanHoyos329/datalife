@@ -9,7 +9,7 @@ from werkzeug.security import generate_password_hash
 from core.db import get_engine
 
 from .auth import ROL_LABEL, permiso
-from .db_helpers import bitacora, ex, q, val
+from .db_helpers import bitacora, ex, q, q1, val
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -34,10 +34,13 @@ def roles_asignables():
 def usuarios():
     filas = q("""SELECT u.*, r.nombre AS rol_nombre, a.nombre AS albergue FROM usuarios u
                  JOIN roles r ON r.codigo = u.rol LEFT JOIN albergues a ON a.id = u.albergue_id
-                 ORDER BY r.nivel, u.usuario""")
+                 WHERE NOT u.pendiente ORDER BY r.nivel, u.usuario""")
+    solicitudes = q("""SELECT u.*, a.nombre AS albergue FROM usuarios u LEFT JOIN albergues a ON a.id = u.albergue_id
+                       WHERE u.pendiente ORDER BY u.creado_en""")
     roles = q("SELECT * FROM roles ORDER BY nivel, codigo")
     albergues = q("SELECT id, nombre FROM albergues WHERE activo ORDER BY id")
     return render_template("admin/usuarios.html", seccion="admin", filas=filas, roles=roles, albergues=albergues,
+                           solicitudes=solicitudes,
                            asignables=roles_asignables(), ROL_LABEL=ROL_LABEL)
 
 
@@ -83,6 +86,28 @@ def alternar_activo(uid):
     else:
         ex("UPDATE usuarios SET activo = NOT activo WHERE id = :i", i=uid)
         bitacora("usuarios", f"Usuario {uid} activado/desactivado")
+    return redirect(url_for(".usuarios"))
+
+
+@bp.route("/usuarios/<int:uid>/solicitud", methods=["POST"])
+@permiso("puede_admin")
+def resolver_solicitud(uid):
+    """Aprobar o rechazar una cuenta creada desde "Crear cuenta"."""
+    u = q1("SELECT usuario FROM usuarios WHERE id = :i AND pendiente", i=uid)
+    if not u:
+        flash("Esa solicitud ya fue resuelta.", "error")
+    elif request.form.get("accion") == "aprobar":
+        rol = request.form.get("rol", "voluntario")
+        if rol not in roles_asignables():
+            flash("No tienes permiso para asignar ese rol.", "error")
+            return redirect(url_for(".usuarios"))
+        ex("UPDATE usuarios SET pendiente = FALSE, activo = TRUE, rol = :r WHERE id = :i", r=rol, i=uid)
+        bitacora("usuarios", f"Cuenta aprobada: {u['usuario']} ({rol})")
+        flash(f"Cuenta de {u['usuario']} aprobada como {ROL_LABEL[rol]}. Ya puede ingresar.")
+    else:
+        ex("DELETE FROM usuarios WHERE id = :i AND pendiente", i=uid)
+        bitacora("usuarios", f"Solicitud rechazada: {u['usuario']}")
+        flash(f"Solicitud de {u['usuario']} rechazada.")
     return redirect(url_for(".usuarios"))
 
 

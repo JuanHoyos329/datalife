@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     rol             VARCHAR(20)  NOT NULL REFERENCES roles(codigo),
     albergue_id     INTEGER      REFERENCES albergues(id), -- albergue por defecto (opcional)
     activo          BOOLEAN      NOT NULL DEFAULT TRUE,
+    pendiente       BOOLEAN      NOT NULL DEFAULT FALSE,   -- cuenta creada desde "Crear cuenta", espera aprobación
     creado_en       TIMESTAMPTZ  NOT NULL DEFAULT now(),
     ultimo_ingreso  TIMESTAMPTZ
 );

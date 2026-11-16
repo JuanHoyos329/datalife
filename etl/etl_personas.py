@@ -337,19 +337,33 @@ def cargar(conn, registros: list[dict]) -> tuple[int, int]:
 # ---------------------------------------------------------------------------
 # Orquestación
 # ---------------------------------------------------------------------------
-def ejecutar(fuente: str | None = None, simular: bool = False, engine=None) -> dict:
+def filas_desde_tabla(valores: list[list]) -> list[dict]:
+    """Convierte una tabla [[encabezados], [fila], ...] (como la envía Apps Script) en registros."""
+    if not valores:
+        return []
+    enc = [limpiar(h) for h in valores[0]]
+    return [dict(zip(enc, f)) for f in valores[1:] if any(limpiar(c) for c in f)]
+
+
+def ejecutar(fuente: str | None = None, simular: bool = False, engine=None,
+             filas: list[dict] | None = None, etiqueta: str = "apps_script") -> dict:
+    """Corre el ETL. Origen, en este orden: `filas` ya extraídas (webhook de Apps Script),
+    un archivo `fuente` (.csv/.xlsx) o Google Sheets con cuenta de servicio."""
     engine = engine or get_engine()
     if not schema_exists(engine):
         log.info("La base está vacía: aplicando db/schema.sql")
         apply_schema(engine)
 
-    if fuente:
+    if filas is not None:
+        pass
+    elif fuente:
         etiqueta, filas = f"archivo:{Path(fuente).name}", extraer_archivo(fuente)
     else:
         sheet_id = os.environ.get("GOOGLE_SHEET_ID")
         cred = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
         if not sheet_id or not cred:
-            raise SystemExit("Configura GOOGLE_SHEET_ID y GOOGLE_SERVICE_ACCOUNT_JSON, o usa --fuente archivo.csv")
+            raise SystemExit("Sin origen de datos: usa el botón \"Enviar a DataLife\" de la hoja (Apps Script), "
+                             "sube el .csv/.xlsx aquí, o configura GOOGLE_SHEET_ID y GOOGLE_SERVICE_ACCOUNT_JSON.")
         etiqueta, filas = f"gsheet:{sheet_id}", extraer_google_sheet(sheet_id, cred)
     log.info("Extraídas %d filas de %s", len(filas), etiqueta)
 

@@ -42,6 +42,20 @@ recibe **403 Acceso restringido** y el intento queda en la bitácora.
 
 Usuarios de demostración (clave `datalife2026`, se cambia con `DEMO_PASSWORD`): `fundador`, `coordinador`, `voluntario`, `brigada`.
 
+**Crear cuenta.** En la pantalla de ingreso hay una pestaña *Crear cuenta*. Cualquiera puede pedir una cuenta de
+**Voluntario** o **Brigadista** (nunca Fundador ni Coordinador). La cuenta queda **pendiente**: no puede ingresar hasta que un
+Fundador o Coordinador la apruebe en *Datos y usuarios*, donde aparece arriba con un contador rojo en el menú.
+
+### Probar todo de punta a punta (10 minutos)
+
+1. **Crear cuenta**: en la página, pestaña *Crear cuenta*, crea `prueba.voluntario`. Al intentar ingresar dirá *en revisión*.
+2. **Aprobar**: ingresa como `coordinador` → *Datos y usuarios* → *Solicitudes de cuenta* → **Aprobar**.
+3. **Ingresar** como `prueba.voluntario`: ve Cupos, Recursos y Alertas; si escribe `/simulacros` recibe *Acceso restringido*.
+4. **Formulario**: en la hoja, menú **DataLife → Agregar 10 respuestas de prueba**.
+5. **Ver los datos**: como `coordinador`, *Censo* muestra las 10 personas nuevas (documentos `99…`); las «Persona albergada»
+   aparecen en *Cupos* como familias en espera. *Datos y usuarios → ETL y bitácora* muestra la corrida.
+6. **Operar**: asigna cupo a una familia, registra una entrega en *Recursos* y mira cómo cambian las *Alertas*.
+
 ---
 
 ## 2. Google Form + Google Sheets (una sola vez, unos 5 minutos)
@@ -61,24 +75,35 @@ en `COLUMNAS` del ETL.
 
 ---
 
-## 3. Conectar tu Google Drive con el ETL (automatización)
+## 3. Conectar el formulario con la app (automatización)
 
-El ETL lee la hoja con una **cuenta de servicio** de Google (un «usuario robot» con permiso solo de lectura):
+**La forma recomendada no necesita cuenta de servicio de Google.** El mismo Apps Script de la hoja le envía las respuestas a la
+app cada vez que alguien llena el formulario:
 
-1. Entra a <https://console.cloud.google.com/> y crea un proyecto (p. ej. `datalife`).
-2. **APIs y servicios → Biblioteca**: habilita **Google Sheets API** y **Google Drive API**.
-3. **IAM y administración → Cuentas de servicio → Crear**: nombre `datalife-etl`, sin roles. Entra a la cuenta →
-   **Claves → Agregar clave → JSON**. Se descarga un `.json`: guárdalo bien y **nunca lo subas a GitHub**.
-4. Copia el correo de la cuenta (`datalife-etl@….iam.gserviceaccount.com`), abre tu hoja → **Compartir** → pégalo como **Lector**.
-5. El **ID de la hoja** es lo que va entre `/d/` y `/edit` en su URL.
+1. En Render abre el servicio **datalife → Environment** y copia el valor de `ETL_WEBHOOK_TOKEN`.
+2. En Apps Script ve a **Configuración del proyecto (⚙) → Propiedades del script → Agregar propiedad**:
+   - `DATALIFE_WEBHOOK_URL` = `https://TU-APP.onrender.com/api/etl/ejecutar`
+   - `DATALIFE_WEBHOOK_TOKEN` = el valor que copiaste.
+3. Recarga la hoja. Aparece el menú **DataLife** con tres opciones:
+   - **Probar conexión con DataLife**: debe responder `{"estado":"ok"}`.
+   - **Agregar 10 respuestas de prueba**: llena el formulario 10 veces con personas ficticias (documentos que empiezan por `99`),
+     y las envía a la app. Sirve para probar todo el camino Form → Hoja → base de datos.
+   - **Enviar respuestas a DataLife ahora**: reenvía toda la hoja (no duplica; actualiza).
+4. Opcional: ejecuta `instalarEtlCada15Min` una vez para reenviar la hoja cada 15 minutos (también evita que Render se duerma).
 
-Con eso hay tres formas de que los datos lleguen a la base (se pueden usar las tres a la vez):
+Otras formas (se pueden combinar):
 
 | Cómo | Cuándo corre | Qué configurar |
 |---|---|---|
-| **GitHub Actions** (`.github/workflows/etl.yml`) | cada 15 minutos | Secretos del repo: `DATABASE_URL`, `GOOGLE_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON` (el JSON completo) |
-| **Al instante**, desde el formulario | cada vez que alguien envía | Apps Script → Configuración del proyecto → Propiedades del script: `DATALIFE_WEBHOOK_URL` = `https://TU-APP.onrender.com/api/etl/ejecutar` y `DATALIFE_WEBHOOK_TOKEN` = el `ETL_WEBHOOK_TOKEN` de Render |
-| **A mano** | cuando quieras | En la app: *Datos y usuarios → Correr ETL* (lee Sheets, o sube un .csv/.xlsx descargado de la hoja) |
+| **A mano** | cuando quieras | En la app: *Datos y usuarios → ETL y bitácora*, sube el .csv/.xlsx descargado de la hoja (*Archivo → Descargar*) |
+| **GitHub Actions** (`.github/workflows/etl.yml`) | cada 15 minutos | Requiere cuenta de servicio de Google: secretos `DATABASE_URL`, `GOOGLE_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON` |
+
+<details><summary>Cuenta de servicio de Google (solo si usas GitHub Actions)</summary>
+
+1. <https://console.cloud.google.com/> → crea un proyecto → habilita **Google Sheets API** y **Google Drive API**.
+2. **IAM → Cuentas de servicio → Crear** (`datalife-etl`, sin roles) → **Claves → Agregar clave → JSON**. Nunca subas ese archivo a GitHub.
+3. Comparte la hoja con el correo de la cuenta como **Lector**.
+</details>
 
 ### Qué hace el ETL (`etl/etl_personas.py`)
 - **Extract**: lee la pestaña que tenga la columna «Nombre completo» (o un .csv/.xlsx).

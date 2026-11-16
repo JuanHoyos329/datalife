@@ -4,6 +4,23 @@
 {% with sub='usuarios' %}{% include "admin/_sub.html" %}{% endwith %}
 <h2 class="h2">Usuarios y roles</h2>
 <p class="lead">Solo Fundador y Coordinador entran a Simulacros y al censo. Voluntario y Brigadista ven únicamente Albergues.</p>
+{% if solicitudes %}
+<div class="sec"><h3>Solicitudes de cuenta <span class="tag t-warn">{{ solicitudes|length }}</span></h3><small>Creadas desde "Crear cuenta". No pueden ingresar hasta que las apruebes.</small></div>
+<div class="reqs">
+  {% for s in solicitudes %}
+  <div class="req">
+    <div class="l"><b>{{ s.nombre }} · {{ s.usuario }}</b><small>Pidió {{ ROL_LABEL[s.rol] }}{% if s.albergue %} en {{ s.albergue }}{% endif %} · {{ s.creado_en|fecha }}</small></div>
+    <form method="post" action="{{ url_for('admin.resolver_solicitud', uid=s.id) }}">{% include "_csrf.html" %}
+      <label class="lbl" for="rq{{ s.id }}" style="margin:0">Rol</label>
+      <select id="rq{{ s.id }}" name="rol" class="field sm">{% for r in asignables %}<option value="{{ r }}" {{ 'selected' if r == s.rol }}>{{ ROL_LABEL[r] }}</option>{% endfor %}</select>
+      <button class="btn btn-p btn-sm" name="accion" value="aprobar">Aprobar</button>
+      <button class="btn btn-s btn-sm" name="accion" value="rechazar">Rechazar</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+<div class="sec"><h3>Roles</h3></div>
+{% endif %}
 <div class="tblwrap" style="margin-bottom:22px"><table class="dtable">
   <thead><tr><th>Rol</th><th>Albergues</th><th>Registrar en albergues</th><th>Censo y simulacros</th><th>Usuarios y ETL</th></tr></thead>
   <tbody>{% for r in roles %}<tr><td><b>{{ r.nombre }}</b></td><td>✓</td><td>{{ '✓' if r.puede_operar else '—' }}</td><td>{{ '✓' if r.puede_simulacros else '—' }}</td><td>{{ '✓' if r.puede_admin else '—' }}</td></tr>{% endfor %}</tbody>

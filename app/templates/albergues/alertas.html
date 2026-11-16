@@ -5,7 +5,7 @@
 
 <div class="kpis k3">
 {% for r in resumen %}
-  <a class="kpi" href="?a={{ r.albergue_id }}" style="text-decoration:none;color:inherit;{{ 'border-color:#14365C' if r.albergue_id == alb.albergue_id and not todas }}">
+  <a class="kpi" href="?a={{ r.albergue_id }}" style="text-decoration:none;color:inherit;{{ 'border-color:var(--navy)' if r.albergue_id == alb.albergue_id and not todas }}">
     <div class="k">{{ r.nombre }}<span class="tag {{ 't-crit' if r.criticas else 't-warn' if r.atencion else 't-ok' }}">{{ 'Crítico' if r.criticas else 'Atención' if r.atencion else 'Estable' }}</span></div>
     <div class="v num">{{ r.criticas }}<small>críticas · {{ r.atencion }} de atención</small></div>
   </a>

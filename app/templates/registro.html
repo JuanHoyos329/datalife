@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Crear cuenta{% endblock %}
+{% macro err(campo) %}{% if errores and errores[campo] %}<div class="ferr" id="e-{{ campo }}">{{ ic('crit', 16) }}<span>{{ errores[campo] }}</span></div>{% endif %}{% endmacro %}
+{% macro inv(campo) %}{% if errores and errores[campo] %}aria-invalid="true" aria-describedby="e-{{ campo }}"{% endif %}{% endmacro %}
+{% block shell %}
+<div class="auth">
+  {% include "_auth_side.html" %}
+  <main class="auth-main" id="contenido">
+    <div class="auth-card">
+      <nav class="switch" aria-label="Acceso">
+        <a href="{{ url_for('auth.login') }}">Ingresar</a>
+        <a class="on" href="{{ url_for('auth.registro') }}" aria-current="page">Crear cuenta</a>
+      </nav>
+      {% if creado %}
+      <div class="done" role="status">
+        <h3><span class="ok-ic">{{ ic('ok', 26) }}</span></h3>
+        <h3>Solicitud enviada</h3>
+        <p class="sub">Creamos la cuenta <b>{{ datos.usuario }}</b> para {{ datos.nombre }}. Antes de usarla, falta un paso:</p>
+        <ol class="steps">
+          <li>Un Fundador o Coordinador la revisa en <b>Datos y usuarios</b>.</li>
+          <li>La aprueba y confirma tu rol y tu albergue.</li>
+          <li>Ingresas con tu usuario y la clave que acabas de crear.</li>
+        </ol>
+        <a class="btn btn-p" href="{{ url_for('auth.login') }}">Ir a ingresar</a>
+      </div>
+      {% else %}
+      <h3>Crea tu cuenta</h3>
+      <p class="sub">Para voluntarios y brigadistas de los albergues. Un coordinador la aprueba antes del primer ingreso.</p>
+      {% if errores %}<div class="banner b-crit" role="alert">{{ ic('crit') }}<div><b>Revisa {{ errores|length }} {{ 'campo' if errores|length == 1 else 'campos' }}</b>Te marcamos abajo qué corregir.</div></div>{% endif %}
+      <form method="post" class="stack mt" novalidate>
+        {% include "_csrf.html" %}
+        <div>
+          <label class="lbl" for="n">Nombre completo</label>
+          <input id="n" name="nombre" class="field sm" value="{{ datos.nombre or '' }}" autocomplete="name" required {{ inv('nombre') }}>
+          {{ err('nombre') }}
+        </div>
+        <div>
+          <label class="lbl" for="u">Usuario</label>
+          <input id="u" name="usuario" class="field sm" value="{{ datos.usuario or '' }}" autocomplete="username" autocapitalize="none" spellcheck="false" required pattern="[a-z][a-z0-9_.]{2,29}" {{ inv('usuario') }}>
+          {% if errores and errores.usuario %}{{ err('usuario') }}{% else %}<div class="fhelp">Minúsculas, sin espacios. Ej.: valentina.c</div>{% endif %}
+        </div>
+        <fieldset style="border:0;margin:0;padding:0">
+          <legend class="lbl">¿Cómo vas a ayudar?</legend>
+          <div class="rolepick">
+            {% for cod, nom in roles.items() %}
+            <label><input type="radio" name="rol" value="{{ cod }}" {{ 'checked' if (datos.rol or 'voluntario') == cod }}><b>{{ nom }}</b><small>{{ 'Registra llegadas, recursos y entregas' if cod == 'voluntario' else 'Apoya evacuación y puntos de encuentro' }}</small></label>
+            {% endfor %}
+          </div>
+          {{ err('rol') }}
+        </fieldset>
+        <div>
+          <label class="lbl" for="a">Albergue <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+          <select id="a" name="albergue" class="field sm" {{ inv('albergue') }}>
+            <option value="">Aún no sé</option>
+            {% for a in albergues %}<option value="{{ a.id }}" {{ 'selected' if datos.albergue == a.id|string }}>{{ a.nombre }}</option>{% endfor %}
+          </select>
+          {{ err('albergue') }}
+        </div>
+        <div class="f2">
+          <div>
+            <label class="lbl" for="c">Clave</label>
+            <div class="pwd"><input id="c" name="clave" type="password" minlength="8" class="field sm" autocomplete="new-password" required {{ inv('clave') }}><button type="button" data-ver="c" aria-controls="c">Mostrar</button></div>
+            {% if errores and errores.clave %}{{ err('clave') }}{% else %}<div class="fhelp">Mínimo 8 caracteres.</div>{% endif %}
+          </div>
+          <div>
+            <label class="lbl" for="c2">Repite la clave</label>
+            <input id="c2" name="clave2" type="password" class="field sm" autocomplete="new-password" required {{ inv('clave2') }}>
+            {{ err('clave2') }}
+          </div>
+        </div>
+        <button type="submit" class="btn btn-p">Crear cuenta</button>
+        <p class="note">Simulacros y el censo de personas solo los ven Fundador y Coordinador; ese acceso no se pide aquí.</p>
+      </form>
+      {% endif %}
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}{% include "_pwd.html" %}{% endblock %}

@@ -21,6 +21,8 @@ RECURSOS = ["agua", "alimentos", "medicamentos", "cobijas", "higiene"]
 def datos_iniciales(engine):
     """Albergues e inventario base. Idempotente."""
     with engine.begin() as c:
+        # Actualizaciones de esquema para bases creadas con una versión anterior
+        c.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pendiente BOOLEAN NOT NULL DEFAULT FALSE"))
         for cod, nom, dir_, cap, stock in ALBERGUES:
             aid = c.execute(text("""
                 INSERT INTO albergues (codigo, nombre, direccion, capacidad) VALUES (:c, :n, :d, :cap)
